@@ -1,0 +1,46 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.33.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: eff58a75ea5b2cd0336f9725e11b5e02f155677eaba470c31c0e4a074bae9622
+
+name:           fhetero
+version:        0.1.0.0
+synopsis:       Heterogenous containers wrapped into functors
+description:    Please see the README on GitHub at <https://github.com/burningwitness/fhetero#readme>
+category:       Data
+homepage:       https://github.com/burningwitness/fhetero#readme
+bug-reports:    https://github.com/burningwitness/fhetero/issues
+author:         Oleksii Divak
+maintainer:     Oleksii Divak <frozenwitness@gmail.com>
+copyright:      (c) 2021, Oleksii Divak
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/burningwitness/fhetero
+
+library
+  exposed-modules:
+      Data.FHList
+      Data.FHList.Internal
+      Data.FHMap
+      Data.FHMap.Internal
+      Data.Type.Extra
+      Data.Type.List
+      Data.Type.Map
+  other-modules:
+      Paths_fhetero
+  hs-source-dirs:
+      src
+  default-extensions: NoImplicitPrelude
+  ghc-options: -Wall
+  build-depends:
+      base >=4.12 && <5
+  default-language: Haskell2010

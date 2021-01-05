@@ -29,6 +29,7 @@ import           Data.Kind
 import           Data.Ord
 import           Data.Proxy
 import           Data.Void
+import           GHC.Generics
 import           GHC.TypeLits as Lits hiding (type (<=))
 import           Prelude hiding (lookup, map)
 
@@ -46,6 +47,55 @@ data FHMap (f :: v -> *) (vs :: M Symbol) where
 
 instance (Functor f, ToAscList f as bs, Show (FHList f bs)) => Show (FHMap f as) where
   show = ("fromList " <>) . show . toAscList
+
+
+
+instance GenericH f as => Generic (FHMap f as) where
+  type Rep (FHMap f as) =
+         D1 ('MetaData "FHMap" "Data.FHMap" "fhetero" 'False)
+           ( RepH f as )
+
+  from = M1 <$> fromH
+
+  to = toH . unM1
+
+class GenericH f as where
+  type RepH f as :: * -> *
+
+  fromH :: FHMap f as -> RepH f as x
+
+  toH :: RepH f as x -> FHMap f as
+
+instance GenericH f 'T where
+  type RepH f 'T = C1 ('MetaCons "FHTip" 'PrefixI 'False)
+                     U1
+
+  fromH FHTip = M1 U1
+
+  toH (M1 U1) = FHTip
+
+instance (GenericH f l, GenericH f r) => GenericH (f :: v -> *) ('B k (a :: v) l r) where
+  type RepH f ('B k a l r) = C1 ('MetaCons "FHBin" 'PrefixI 'False)
+                               ( S1 ('MetaSel 'Nothing
+                                                'NoSourceUnpackedness
+                                                'NoSourceStrictness
+                                                'DecidedLazy)
+                                       (Rec0 (Proxy k))
+                                  :*:
+                                 S1 ('MetaSel 'Nothing
+                                                'NoSourceUnpackedness
+                                                'NoSourceStrictness
+                                                'DecidedLazy)
+                                       (Rec0 (f a))
+                                  :*:
+                                 RepH f l
+                                  :*:
+                                 RepH f r
+                               )
+
+  fromH (FHBin k a l r) = M1 $ M1 (K1 k) :*: M1 (K1 a) :*: fromH l :*: fromH r
+
+  toH (M1 (M1 (K1 k) :*: M1 (K1 a) :*: l :*: r)) = FHBin k a (toH l) (toH r)
 
 
 
@@ -748,7 +798,7 @@ class SplitS k m l r | k m -> l r where
   splitS :: Proxy k -> FHMap f m -> StrictPair (FHMap f l) (FHMap f r)
 
 instance SplitS k 'T 'T 'T where
-  splitS _ FHTip = FHTip :*: FHTip
+  splitS _ FHTip = FHTip :&: FHTip
 
 instance ( flag ~ CmpSymbol q k
          , SplitS' flag q ('B k a l r) l' r'
@@ -764,19 +814,19 @@ instance ( SplitS q l lt gt
          )
         => SplitS' 'LT q ('B k a l r) lt r' where
   splitS' _ q (FHBin k a l r) =
-    let lt :*: gt = splitS q l
-    in lt :*: link k a gt r
+    let lt :&: gt = splitS q l
+    in lt :&: link k a gt r
 
 instance ( SplitS q r lt gt
          , Link k a l lt l'
          )
         => SplitS' 'GT q ('B k a l r) l' gt where
   splitS' _ q (FHBin k a l r) =
-    let lt :*: gt = splitS q r
-    in link k a l lt :*: gt
+    let lt :&: gt = splitS q r
+    in link k a l lt :&: gt
 
 instance SplitS' 'EQ k ('B k a l r) l r where
-  splitS' _ _ (FHBin _ _ l r) = l :*: r
+  splitS' _ _ (FHBin _ _ l r) = l :&: r
 
 
 
@@ -785,13 +835,13 @@ instance SplitS' 'EQ k ('B k a l r) l r where
 -- @
 -- (x :*: _|_) = (_|_ :*: y) = _|_
 -- @
-data StrictPair a b = !a :*: !b
+data StrictPair a b = !a :&: !b
 
-infixr 1 :*:
+infixr 1 :&:
 
 -- | Convert a strict pair to a standard pair.
 toPair :: StrictPair a b -> (a, b)
-toPair (x :*: y) = (x, y)
+toPair (x :&: y) = (x, y)
 {-# INLINE toPair #-}
 
 data StrictTriple a b c = StrictTriple !a !b !c

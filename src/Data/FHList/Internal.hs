@@ -10,6 +10,7 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -20,6 +21,7 @@ import           Data.Type.Extra
 
 import           Data.List (intercalate)
 import           Data.Proxy
+import           GHC.Generics
 import           GHC.TypeLits as Lits
 import           Prelude hiding ( map, concat, foldr, foldl, foldMap
                                 , traverse, (++), (!!), take, drop
@@ -32,6 +34,48 @@ infixr 4 :&>
 data FHList (f :: k -> *) (as :: [k]) where
   (:&>) :: f a -> FHList f as -> FHList f (a ': as)
   FHZero :: FHList t '[]
+
+
+
+instance GenericH f as => Generic (FHList f as) where
+  type Rep (FHList f as) =
+         D1 ('MetaData "FHList" "Data.FHList" "fhetero" 'False)
+           ( RepH f as )
+
+  from = M1 <$> fromH
+
+  to = toH . unM1
+
+class GenericH f as where
+  type RepH f as :: * -> *
+
+  fromH :: FHList f as -> RepH f as x
+
+  toH :: RepH f as x -> FHList f as
+
+instance GenericH f '[] where
+  type RepH f '[] = C1 ('MetaCons "FHZero" 'PrefixI 'False)
+                      U1
+
+  fromH FHZero = M1 U1
+
+  toH (M1 U1) = FHZero
+
+instance GenericH f as => GenericH f (a ': as) where
+  type RepH f (a ': as) = C1 ('MetaCons ":&>" ('InfixI 'RightAssociative 4) 'False)
+                            ( S1 ('MetaSel 'Nothing
+                                             'NoSourceUnpackedness
+                                             'NoSourceStrictness
+                                             'DecidedLazy)
+                                    (Rec0 (f a))
+                              :*:
+                              RepH f as
+                            )
+
+  fromH (a :&> as) = M1 $ M1 (K1 a) :*: fromH as
+
+  toH (M1 (M1 (K1 a) :*: as)) = a :&> toH as
+
 
 
 

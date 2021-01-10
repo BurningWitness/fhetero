@@ -7,6 +7,7 @@ module Data.FHList
   , empty
   , singleton
     -- * Basic functions
+  , (++)
   , null
   , length
     -- * List transformations

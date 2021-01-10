@@ -8,6 +8,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -126,16 +127,18 @@ size (_ :: FHMap f as) = natVal (Proxy :: Proxy (Length1 M as))
 
 
 -- | Synonym to 'lookup', arguments are flipped.
-(!) :: LookupI 'IfExists k as d a => FHMap f as -> Proxy k -> f a
+(!) :: Lookup k as a => FHMap f as -> Proxy k -> f a
 (!) = flip lookup
 
 
+
+type LookupMay k as a = forall d. LookupI 'EitherWay k as d a
 
 -- | Lookup the value at a key in the map.
 --
 --   The function will return the corresponding value as @('Just' value)@,
 --   or @'Nothing'@ if the key isn't in the map.
-lookupMay :: LookupI 'EitherWay k as d a => Proxy k -> FHMap f as -> Maybe (f a)
+lookupMay :: LookupMay k as a => Proxy k -> FHMap f as -> Maybe (f a)
 lookupMay k m =
   let (p, v) = lookupI (Proxy :: Proxy 'EitherWay) k m
   in v <$ guard (materialize p)
@@ -143,19 +146,23 @@ lookupMay k m =
 
 
 -- | Synonym to 'lookupMay', arguments are flipped.
-(!?) :: LookupI 'EitherWay k as d a => FHMap f as -> Proxy k -> Maybe (f a)
+(!?) :: LookupMay k as a => FHMap f as -> Proxy k -> Maybe (f a)
 (!?) = flip lookupMay
 
 
 
+type Lookup k as a = forall d. LookupI 'IfExists k as d a
+
 -- | Lookup the value at a key in the map.
 --   
 --   The function will return a type error if the key isn't in the map.
-lookup :: LookupI 'IfExists k as d a => Proxy k -> FHMap f as -> f a
+lookup :: Lookup k as a => Proxy k -> FHMap f as -> f a
 lookup k = snd . lookupI (Proxy :: Proxy 'IfExists) k
 
+type Member k as d a = (Materialize Bool d, LookupI 'EitherWay k as d a)
+
 -- | Is the key a member of the map?
-member :: LookupI 'EitherWay k as d a => Proxy k -> FHMap (t :: * -> *) as -> Bool
+member :: Member k as d a => Proxy k -> FHMap (t :: * -> *) as -> Bool
 member k = materialize . fst . lookupI (Proxy :: Proxy 'EitherWay) k
 
 
@@ -433,25 +440,31 @@ type Ratio = 2
 
 
 
+type Insert = InsertC 'Clobber
+
 -- | Insert a new key and value in the map. If the key is already present in the map,
 --   the associated value is replaced with the supplied value.
-insert :: InsertC 'Clobber k a m z => Proxy k -> f a -> FHMap f m -> FHMap f z
+insert :: Insert k a m z => Proxy k -> f a -> FHMap f m -> FHMap f z
 insert = insertC (Proxy :: Proxy 'Clobber)
 
 
 
+type InsertUnique = InsertC 'NoClobber
+
 -- | Insert a new key and value in the map. If the key is already present in the map,
 --   a type error occurs.
-insertUnique :: InsertC 'NoClobber k a m z => Proxy k -> f a -> FHMap f m -> FHMap f z
+insertUnique :: InsertUnique k a m z => Proxy k -> f a -> FHMap f m -> FHMap f z
 insertUnique = insertC (Proxy :: Proxy 'NoClobber)
 
 
+
+type InsertId = InsertC 'IfIdentical
 
 -- | Insert a new key and value in the map. If the key is already present in the map,
 --   the associated value is only replaced with the supplied value if the
 --   previously stored type at that position matches the new one, otherwise a
 --   type error occurs.
-insertId :: InsertC 'IfIdentical k a m z => Proxy k -> f a -> FHMap f m -> FHMap f z
+insertId :: InsertId k a m z => Proxy k -> f a -> FHMap f m -> FHMap f z
 insertId = insertC (Proxy :: Proxy 'IfIdentical)
 
 
@@ -891,24 +904,30 @@ instance SplitMemberS' 'EQ k ('B k a l r) l 'True r where
 
 
 
+type Union = UnionC 'Clobber
+
 -- | The expression @('union' t1 t2)@ takes the left-biased union of @t1@ and @t2@.
 --   It prefers @t1@ when duplicate keys are encountered.
 --
 --   For every key already present in the map,
 --   the associated value is replaced with the supplied value.
-union :: UnionC 'Clobber l r z => FHMap f l -> FHMap f r -> FHMap f z
+union :: Union l r z => FHMap f l -> FHMap f r -> FHMap f z
 union = unionC (Proxy :: Proxy 'Clobber)
 
 
 
+type UnionUnique = UnionC 'NoClobber
+
 -- | 'union' based on 'insertUnique'.
-unionUnique :: UnionC 'NoClobber l r z => FHMap f l -> FHMap f r -> FHMap f z
+unionUnique :: UnionUnique l r z => FHMap f l -> FHMap f r -> FHMap f z
 unionUnique = unionC (Proxy :: Proxy 'NoClobber)
 
 
 
+type UnionId = UnionC 'IfIdentical
+
 -- | 'union' based on 'insertId'.
-unionId :: UnionC 'IfIdentical l r z => FHMap f l -> FHMap f r -> FHMap f z
+unionId :: UnionId l r z => FHMap f l -> FHMap f r -> FHMap f z
 unionId = unionC (Proxy :: Proxy 'IfIdentical)
 
 
@@ -952,19 +971,25 @@ instance ( SplitS lk r l2 r2
 
 
 
-fromList :: (Functor f, FromListC 'Clobber f as bs) => FHList f as -> FHMap f bs
+type FromList = FromListC 'Clobber
+
+fromList :: (Functor f, FromList f as bs) => FHList f as -> FHMap f bs
 fromList = fromListC (Proxy :: Proxy 'Clobber)
 
 
 
+type FromListUnique = FromListC 'NoClobber
+
 -- | 'fromList' based on 'insertUnique'.
-fromListUnique :: (Functor f, FromListC 'NoClobber f as bs) => FHList f as -> FHMap f bs
+fromListUnique :: (Functor f, FromListUnique f as bs) => FHList f as -> FHMap f bs
 fromListUnique = fromListC (Proxy :: Proxy 'NoClobber)
 
 
 
+type FromListId = FromListC 'IfIdentical
+
 -- | 'fromList' based on 'insertId'.
-fromListId :: (Functor f, FromListC 'IfIdentical f as bs) => FHList f as -> FHMap f bs
+fromListId :: (Functor f, FromListId f as bs) => FHList f as -> FHMap f bs
 fromListId = fromListC (Proxy :: Proxy 'IfIdentical)
 
 
@@ -1228,16 +1253,20 @@ instance ( MaxViewSure rk ra rl rr k' a' r'
 
 
 
+type Delete = DeleteI 'IfExists
+
 -- | Delete a key and its value from the map.
 --   When the key is not a member of the map, a type error is thrown.
-delete :: DeleteI 'IfExists k m d z => Proxy k -> FHMap f m -> FHMap f z
+delete :: Delete k m d z => Proxy k -> FHMap f m -> FHMap f z
 delete k = snd . deleteI (Proxy :: Proxy 'IfExists) k
 
 
 
+type Delete' = DeleteI 'EitherWay
+
 -- | Delete a key and its value from the map.
 --   When the key is not a member of the map, the original map is returned.
-delete' :: DeleteI 'EitherWay k m d z => Proxy k -> FHMap f m -> FHMap f z
+delete' :: Delete' k m d z => Proxy k -> FHMap f m -> FHMap f z
 delete' k = snd . deleteI (Proxy :: Proxy 'EitherWay) k
 
 
@@ -1288,18 +1317,22 @@ instance Glue l r z => DeleteI' 'EQ i q ('B k a l r) 'True z where
 
 
 
+type Adjust = AdjustI 'IfExists
+
 -- | Update a value at a specific key with the result of the provided function.
 --   
 --   When the key is not a member of the map, a type error is thrown.
-adjust :: AdjustI 'IfExists a b k m d z => (f a -> f b) -> Proxy k -> FHMap f m -> FHMap f z
+adjust :: Adjust a b k m d z => (f a -> f b) -> Proxy k -> FHMap f m -> FHMap f z
 adjust f k = snd . adjustI (Proxy :: Proxy 'IfExists) f k
 
 
 
+type Adjust' = AdjustI 'EitherWay
+
 -- | Update a value at a specific key with the result of the provided function.
 --   
 --   When the key is not a member of the map, the original map is returned.
-adjust' :: AdjustI 'EitherWay a b k m d z => (f a -> f b) -> Proxy k -> FHMap f m -> FHMap f z
+adjust' :: Adjust' a b k m d z => (f a -> f b) -> Proxy k -> FHMap f m -> FHMap f z
 adjust' f k = snd . adjustI (Proxy :: Proxy 'EitherWay) f k
 
 

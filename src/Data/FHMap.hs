@@ -42,48 +42,66 @@ module Data.FHMap
   , empty
   , singleton
     -- ** From unordered lists
+  , FromList
   , fromList
+  , FromListUnique
+  , fromListUnique
+  , FromListId
+  , fromListId
     -- * Insertion
+  , Insert
   , insert
+  , InsertUnique
   , insertUnique
+  , InsertId
   , insertId
     -- * Deletion/Update
   , delete
+  , Delete'
   , delete'
+  , Adjust
   , adjust
+  , Adjust'
   , adjust'
     -- * Query
     -- ** Lookup
+  , Lookup
   , lookup
   , (!)
+  , LookupMay
   , lookupMay
   , (!?)
+  , Member
   , member
     -- ** Size
   , null
   , size
     -- * Combine
     -- ** Union
+  , Union
   , union
+  , UnionUnique
   , unionUnique
+  , UnionId
   , unionId
     -- ** Difference
-  , difference
+  , Difference (..)
   , (\\)
     -- ** Intersection
-  , intersection
+  , Intersection (..)
     -- * Traversal
     -- ** Map
   , map
-  , mapWithKey
+  , MapWithKey (..)
   , traverse
-  , traverseWithKey
+  , TraverseWithKey (..)
     -- * Folds
   , foldr
   , foldl
   , foldrWithKey
   , foldlWithKey
   , foldMapWithKey
+  , FoldWithKey
     -- ** Strict folds
   , foldr'
   , foldl'
@@ -93,12 +111,14 @@ module Data.FHMap
     -- ** Lists
   , toList
     -- ** Ordered lists
+  , ToAscList
   , toAscList
+  , ToDescList
   , toDescList
     -- * Re-exports
   , module Data.Type.Map
-  , module Data.Proxy
-  , module Data.Void
+  , Proxy (..)
+  , Void
   ) where
 
 import           Data.FHMap.Internal

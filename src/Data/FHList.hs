@@ -7,32 +7,37 @@ module Data.FHList
   , empty
   , singleton
     -- * Basic functions
-  , (++)
+  , Concat (..)
   , null
   , length
     -- * List transformations
-  , map
+  , Map (..)
     -- * Folds
-  , foldl
-  , foldl'
-  , foldr
-  , foldr'
-  , foldMap
+  , Fold (..)
     -- ** Monadic
   , foldlM
   , foldrM
+  , Traverse (..)
   , traverse_
   , for_
     -- * Sublists
-  , take
-  , drop
+  , Take (..)
+  , Drop (..)
     -- * Searching
+    -- ** Searching by equality
   , elem
+  , Elem
+  , lookup
     -- * Indexing
-  , (!!)
+  , At (..)
     -- * \"Set\" operations
-  , nub
+  , Nub (..)
   , delete
+  , Retrieve
+    -- * Re-exports
+  , Proxy (..)
   ) where
 
 import           Data.FHList.Internal
+
+import           Data.Proxy

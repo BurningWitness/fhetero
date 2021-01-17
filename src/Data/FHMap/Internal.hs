@@ -126,6 +126,36 @@ size (_ :: FHMap f as) = natVal (Proxy :: Proxy (Length1 M as))
 
 
 
+class Member (k :: Symbol) (as :: M Symbol) (e :: Bool) | k as -> e
+
+instance Member k 'T 'False
+
+instance ( flag ~ CmpSymbol q k
+         , Member' flag q ('B k b l r) e
+         )
+      => Member q ('B k b l r) e
+
+
+
+class Member' (flag :: Ordering) k as e | flag k as -> e
+
+instance Member' 'EQ k ('B k a ls ms) 'True
+
+instance Member q l e => Member' 'LT q ('B k b l r) e
+
+instance Member q r e => Member' 'GT q ('B k b l r) e
+
+
+
+-- | Is the key a member of the map?
+member
+  :: (Materialize Bool e, Member k as e)
+  => Proxy k -> FHMap f as -> Bool
+member (_ :: Proxy k) (_ :: FHMap f as) =
+  materialize (Proxy :: Member k as e => Proxy e)
+
+
+
 -- | Synonym to 'lookup', arguments are flipped.
 (!) :: Lookup k as exists a => FHMap f as -> Proxy k -> f a
 (!) = flip lookup
@@ -138,7 +168,10 @@ type LookupMay = LookupI 'EitherWay
 --
 --   The function will return the corresponding value as @('Just' value)@,
 --   or @'Nothing'@ if the key isn't in the map.
-lookupMay :: LookupMay k as exists a => Proxy k -> FHMap f as -> Maybe (f a)
+--
+--   NOTE: Since in case of 'Nothing' __something__ still has to be returned on the type level
+--         and kinds do not have a 'Void' type, this function will not work if @a@ is a kind.
+lookupMay :: LookupMay k as e a => Proxy k -> FHMap f as -> Maybe (f a)
 lookupMay k m =
   let (p, v) = lookupI (Proxy :: Proxy 'EitherWay) k m
   in v <$ guard (materialize p)
@@ -159,17 +192,10 @@ type Lookup = LookupI 'IfExists
 lookup :: Lookup k as exists a => Proxy k -> FHMap f as -> f a
 lookup k = snd . lookupI (Proxy :: Proxy 'IfExists) k
 
-type Member k as e a = (Materialize Bool e, LookupMay k as e a)
-
--- | Is the key a member of the map?
-member :: Member k as exists a => Proxy k -> FHMap (t :: * -> *) as -> Bool
-member k = materialize . fst . lookupI (Proxy :: Proxy 'EitherWay) k
-
-
 
 
 class Materialize Bool e
-   => LookupI (i :: IfExists) (k :: Symbol) (as :: M Symbol) (e :: Bool) (a :: *)
+   => LookupI (i :: IfExists) (k :: Symbol) (as :: M Symbol) (e :: Bool) a
                 | i k as -> e a where
   lookupI :: Proxy i -> Proxy k -> FHMap f as -> (Proxy e, f a)
 

@@ -32,7 +32,7 @@ import           Data.Proxy
 import           Data.Void
 import           GHC.Generics
 import           GHC.TypeLits as Lits hiding (type (<=))
-import           Prelude hiding (lookup, map)
+import           Prelude hiding (lookup, map, foldr)
 
 
 
@@ -408,6 +408,22 @@ instance ( KnownSymbol k
     liftA3 (flip $ FHBin k) (traverseWithKey p f l) (f k a) (traverseWithKey p f r)
 
 
+
+traverse_
+  :: (FoldWithKey p as, Applicative m)
+  => Proxy p
+  -> (forall a. p a => f a -> m ())
+  -> FHMap f as
+  -> m ()
+traverse_ p f = foldr p (\a acc -> f a *> acc) $ pure ()
+
+traverseWithKey_
+  :: (FoldWithKey p as, Applicative m)
+  => Proxy p
+  -> (forall k a. (KnownSymbol k, p a) => Proxy k -> f a -> m ())
+  -> FHMap f as
+  -> m ()
+traverseWithKey_ p f = foldrWithKey p (\k a acc -> f k a *> acc) $ pure ()
 
 
 

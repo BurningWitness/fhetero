@@ -47,7 +47,7 @@ data FHMap (f :: v -> *) (vs :: M Symbol) where
   FHTip :: FHMap f 'T
 
 instance (Functor f, ToAscList f as bs, Show (FHList f bs)) => Show (FHMap f as) where
-  show = ("fromList " <>) . show . toAscList
+  show = show . toAscList
 
 
 
@@ -127,18 +127,18 @@ size (_ :: FHMap f as) = natVal (Proxy :: Proxy (Length1 M as))
 
 
 -- | Synonym to 'lookup', arguments are flipped.
-(!) :: Lookup k as a => FHMap f as -> Proxy k -> f a
+(!) :: Lookup k as exists a => FHMap f as -> Proxy k -> f a
 (!) = flip lookup
 
 
 
-type LookupMay k as a = forall d. LookupI 'EitherWay k as d a
+type LookupMay = LookupI 'EitherWay
 
 -- | Lookup the value at a key in the map.
 --
 --   The function will return the corresponding value as @('Just' value)@,
 --   or @'Nothing'@ if the key isn't in the map.
-lookupMay :: LookupMay k as a => Proxy k -> FHMap f as -> Maybe (f a)
+lookupMay :: LookupMay k as exists a => Proxy k -> FHMap f as -> Maybe (f a)
 lookupMay k m =
   let (p, v) = lookupI (Proxy :: Proxy 'EitherWay) k m
   in v <$ guard (materialize p)
@@ -146,56 +146,56 @@ lookupMay k m =
 
 
 -- | Synonym to 'lookupMay', arguments are flipped.
-(!?) :: LookupMay k as a => FHMap f as -> Proxy k -> Maybe (f a)
+(!?) :: LookupMay k as exists a => FHMap f as -> Proxy k -> Maybe (f a)
 (!?) = flip lookupMay
 
 
 
-type Lookup k as a = forall d. LookupI 'IfExists k as d a
+type Lookup = LookupI 'IfExists
 
 -- | Lookup the value at a key in the map.
 --   
 --   The function will return a type error if the key isn't in the map.
-lookup :: Lookup k as a => Proxy k -> FHMap f as -> f a
+lookup :: Lookup k as exists a => Proxy k -> FHMap f as -> f a
 lookup k = snd . lookupI (Proxy :: Proxy 'IfExists) k
 
-type Member k as d a = (Materialize Bool d, LookupI 'EitherWay k as d a)
+type Member k as e a = (Materialize Bool e, LookupMay k as e a)
 
 -- | Is the key a member of the map?
-member :: Member k as d a => Proxy k -> FHMap (t :: * -> *) as -> Bool
+member :: Member k as exists a => Proxy k -> FHMap (t :: * -> *) as -> Bool
 member k = materialize . fst . lookupI (Proxy :: Proxy 'EitherWay) k
 
 
 
 
-class Materialize Bool d
-   => LookupI (i :: IfExists) (k :: Symbol) (as :: M Symbol) (d :: Bool) (a :: *)
-                | i k as -> d a where
-  lookupI :: Proxy i -> Proxy k -> FHMap f as -> (Proxy d, f a)
+class Materialize Bool e
+   => LookupI (i :: IfExists) (k :: Symbol) (as :: M Symbol) (e :: Bool) (a :: *)
+                | i k as -> e a where
+  lookupI :: Proxy i -> Proxy k -> FHMap f as -> (Proxy e, f a)
 
 instance LookupI i k 'T 'False Void where
   lookupI _ _ FHTip = (Proxy :: Proxy 'False, undefined) -- undefined is @t Void@
 
 instance ( flag ~ CmpSymbol q k
-         , Materialize Bool d
-         , Exists i d "Key " q " is not in the map" 
-         , LookupI' flag i q ('B k b l r) d a
+         , Materialize Bool e
+         , Exists i e "Key " q " is not in the map" 
+         , LookupI' flag i q ('B k b l r) e a
          )
-      => LookupI i q ('B k b l r) d a where
+      => LookupI i q ('B k b l r) e a where
   lookupI = lookupI' (Proxy :: Proxy flag)
 
 
 
-class LookupI' (flag :: Ordering) i k as d a | flag i k as -> d a where
-  lookupI' :: Proxy flag -> Proxy i -> Proxy k -> FHMap f as -> (Proxy d, f a)
+class LookupI' (flag :: Ordering) i k as e a | flag i k as -> e a where
+  lookupI' :: Proxy flag -> Proxy i -> Proxy k -> FHMap f as -> (Proxy e, f a)
 
 instance LookupI' 'EQ i k ('B k a ls ms) 'True a where
   lookupI' _ _ _ (FHBin _ a _ _) = (Proxy :: Proxy 'True, a)
 
-instance LookupI i q l d a => LookupI' 'LT i q ('B k b l r) d a where
+instance LookupI i q l e a => LookupI' 'LT i q ('B k b l r) e a where
   lookupI' _ i q (FHBin _ _ l _) = lookupI i q l
 
-instance LookupI i q r d a => LookupI' 'GT i q ('B k b l r) d a where
+instance LookupI i q r e a => LookupI' 'GT i q ('B k b l r) e a where
   lookupI' _ i q (FHBin _ _ _ r) = lookupI i q r
 
 

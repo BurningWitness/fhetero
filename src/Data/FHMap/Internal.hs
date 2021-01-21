@@ -1051,10 +1051,10 @@ instance FromListC c f '[] 'T where
 instance Functor f => FromListC c f '[(Proxy k, a)] ('B k a 'T 'T) where
   fromListC _ (v :&> FHZero) = FHBin (Proxy :: Proxy k) (snd <$> v) FHTip FHTip
 
-instance ( flag ~ NotOrdered ((Proxy k, a) ': as)
-         , FromListC' flag c f ((Proxy k, a) ': as) bs
+instance ( flag ~ NotOrdered ((Proxy k, a) ': (Proxy l, b) ': as)
+         , FromListC' flag c f ((Proxy k, a) ': (Proxy l, b) ': as) bs
          )
-      => FromListC c f ((Proxy k, a) ': as) bs where
+      => FromListC c f ((Proxy k, a) ': (Proxy l, b) ': as) bs where
   fromListC c m = fromListC' (Proxy :: Proxy flag) c m
 
 

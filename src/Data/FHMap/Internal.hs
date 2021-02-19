@@ -393,17 +393,10 @@ instance TraverseWithKey f 'T where
 
 instance ( KnownSymbol k
          , p a
+         , TraverseWithKey p l
+         , TraverseWithKey p r
          )
-        => TraverseWithKey p ('B k a 'T 'T) where
-  traverseWithKey _ f (FHBin k a FHTip FHTip) =
-    (\v -> FHBin k v FHTip FHTip) <$> f k a
-
-instance ( KnownSymbol k
-         , p a
-         , TraverseWithKey p ('B lk la ll lr)
-         , TraverseWithKey p ('B rk ra rl rr)
-         )
-        => TraverseWithKey p ('B k a ('B lk la ll lr) ('B rk ra rl rr)) where
+        => TraverseWithKey p ('B k a l r) where
   traverseWithKey p f (FHBin k a l r) =
     liftA3 (flip $ FHBin k) (traverseWithKey p f l) (f k a) (traverseWithKey p f r)
 

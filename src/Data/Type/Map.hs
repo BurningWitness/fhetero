@@ -1,9 +1,9 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE DataKinds
+           , GADTs
+           , PolyKinds
+           , TypeFamilies
+           , TypeOperators
+           , UndecidableInstances #-}
 
 module Data.Type.Map where
 

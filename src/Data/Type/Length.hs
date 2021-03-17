@@ -1,6 +1,6 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DataKinds
+           , PolyKinds
+           , TypeFamilies #-}
 
 module Data.Type.Length where
 

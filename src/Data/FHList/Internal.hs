@@ -1,18 +1,18 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE PatternSynonyms #-}
-{-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE Rank2Types #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE BangPatterns
+           , ConstraintKinds
+           , DataKinds
+           , FlexibleContexts
+           , FlexibleInstances
+           , FunctionalDependencies
+           , GADTs
+           , KindSignatures
+           , PatternSynonyms
+           , PolyKinds
+           , Rank2Types
+           , ScopedTypeVariables
+           , TypeFamilies
+           , TypeOperators
+           , UndecidableInstances #-}
 
 module Data.FHList.Internal where
 

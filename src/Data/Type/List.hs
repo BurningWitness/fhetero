@@ -1,8 +1,8 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE DataKinds
+           , TypeFamilies
+           , TypeOperators
+           , PolyKinds
+           , UndecidableInstances #-}
 
 module Data.Type.List where
 

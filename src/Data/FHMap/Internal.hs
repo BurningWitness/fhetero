@@ -1,19 +1,19 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE QuantifiedConstraints #-}
-{-# LANGUAGE Rank2Types #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE BangPatterns
+           , ConstraintKinds
+           , DataKinds
+           , FlexibleContexts
+           , FlexibleInstances
+           , FunctionalDependencies
+           , GADTs
+           , KindSignatures
+           , MultiParamTypeClasses
+           , PolyKinds
+           , QuantifiedConstraints
+           , Rank2Types
+           , ScopedTypeVariables
+           , TypeFamilies
+           , TypeOperators
+           , UndecidableInstances #-}
 
 {-# OPTIONS_HADDOCK not-home #-}
 

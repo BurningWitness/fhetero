@@ -1,9 +1,9 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DataKinds
+           , FlexibleInstances
+           , FunctionalDependencies
+           , KindSignatures
+           , PolyKinds
+           , ScopedTypeVariables #-}
 
 module Data.Type.Materialize where
 

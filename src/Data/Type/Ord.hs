@@ -1,9 +1,9 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE DataKinds
+           , KindSignatures
+           , PolyKinds
+           , TypeFamilies
+           , TypeOperators
+           , UndecidableInstances #-}
 
 module Data.Type.Ord where
 

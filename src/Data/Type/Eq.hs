@@ -1,7 +1,7 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE DataKinds
+           , PolyKinds
+           , TypeFamilies
+           , TypeOperators #-}
 
 module Data.Type.Eq where
 

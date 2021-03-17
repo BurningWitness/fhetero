@@ -20,10 +20,13 @@
 module Data.FHMap.Internal where
 
 import           Data.FHList (FHList (..))
-import           Data.Type.Bool
-import           Data.Type.Extra
+import           Data.Type.Eq
+import           Data.Type.Length
 import           Data.Type.Map
+import           Data.Type.Materialize
+import           Data.Type.Ord
 
+import           Data.Type.Bool
 import           Control.Applicative (liftA3)
 import           Control.Monad (guard)
 import           Data.Kind
@@ -121,8 +124,8 @@ null _    = False
 
 
 -- | The number of elements in the map.
-size :: KnownNat (Length1 M as) => FHMap f as -> Integer
-size (_ :: FHMap f as) = natVal (Proxy :: Proxy (Length1 M as))
+size :: KnownNat (Length as) => FHMap f as -> Integer
+size (_ :: FHMap f as) = natVal (Proxy :: Proxy (Length as))
 
 
 
@@ -587,13 +590,13 @@ instance BalanceR k a 'T r z => Balance k a 'T r z where
 
 instance ( l ~ 'B lk la ll lr
          , r ~ 'B rk ra rl rr
-         , leftCondition ~ (Length1 M l > Delta Lits.* Length1 M r)
-         , rightCondition ~ (Length1 M r > Delta Lits.* Length1 M l)
+         , leftCondition ~ (Length l > Delta Lits.* Length r)
+         , rightCondition ~ (Length r > Delta Lits.* Length l)
          , isOther      ~ (Not rightCondition || Not leftCondition)
          , isRight      ~ rightCondition
          , isOtherInner ~ If isRight
-                            ( Length1 M rl < Ratio Lits.* Length1 M rr )
-                            ( Length1 M lr < Ratio Lits.* Length1 M ll )
+                            ( Length rl < Ratio Lits.* Length rr )
+                            ( Length lr < Ratio Lits.* Length ll )
          , Balance' isOther isRight isOtherInner k a l r z
          )
         => Balance k a ('B lk la ll lr) ('B rk ra rl rr) z where
@@ -654,7 +657,7 @@ instance BalanceL k a ('B lk la ('B llk lla lll llr) 'T) 'T ('B lk la ('B llk ll
 instance ( ll ~ 'B llk lla lll llr
          , lr ~ 'B lrk lra lrl lrr
          , l ~ 'B lk la ll lr
-         , flag ~ (Length1 M lr < Ratio Lits.* Length1 M ll)
+         , flag ~ (Length lr < Ratio Lits.* Length ll)
          , BalanceL' flag k a l 'T z
          )
         => BalanceL k a ('B lk la ('B llk lla lll llr) ('B lrk lra lrl lrr)) 'T z where
@@ -665,9 +668,9 @@ instance BalanceL k a 'T ('B rk ra 'T 'T) ('B k a 'T ('B rk ra 'T 'T)) where
 
 instance ( l ~ 'B lk la ll lr
          , r ~ 'B rk ra rl rr
-         , isOther      ~ Not (Length1 M l > Delta Lits.* Length1 M r)
+         , isOther      ~ Not (Length l > Delta Lits.* Length r)
          , isRight      ~ 'False
-         , isOtherInner ~ (Length1 M lr < Ratio Lits.* Length1 M ll)
+         , isOtherInner ~ (Length lr < Ratio Lits.* Length ll)
          , Balance' isOther isRight isOtherInner k a l r z
          )
         => BalanceL k a ('B lk la ll lr) ('B rk ra rl rr) z where
@@ -707,7 +710,7 @@ instance BalanceR k a 'T ('B rk ra ('B rlk rla 'T 'T) 'T) ('B rlk rla ('B k a 'T
 instance ( rl ~ 'B rlk rla rll rlr
          , rr ~ 'B rrk rra rrl rrr
          , r ~ 'B rk ra rl rr
-         , flag ~ (Length1 M rl < Ratio Lits.* Length1 M rr)
+         , flag ~ (Length rl < Ratio Lits.* Length rr)
          , BalanceR' flag k a 'T r z
          )
         => BalanceR k a 'T ('B rk ra ('B rlk rla rll rlr) ('B rrk rra rrl rrr)) z where
@@ -718,9 +721,9 @@ instance BalanceR k a ('B lk la 'T 'T) 'T ('B k a ('B lk la 'T 'T) 'T) where
 
 instance ( l ~ 'B lk la ll lr
          , r ~ 'B rk ra rl rr
-         , isOther      ~ Not (Length1 M r > Delta Lits.* Length1 M l)
+         , isOther      ~ Not (Length r > Delta Lits.* Length l)
          , isRight      ~ 'True
-         , isOtherInner ~ (Length1 M rl < Ratio Lits.* Length1 M rr)
+         , isOtherInner ~ (Length rl < Ratio Lits.* Length rr)
          , Balance' isOther isRight isOtherInner k a l r z
          )
         => BalanceR k a ('B lk la ll lr) ('B rk ra rl rr) z where
@@ -774,8 +777,8 @@ instance InsertMax k a ('B lk la ll lr) z => Link k a ('B lk la ll lr) 'T z wher
 
 instance ( l ~ 'B lk la ll lr
          , r ~ 'B rk ra rl rr
-         , flag1 ~ (Delta Lits.* Length1 M l < Length1 M r)
-         , flag2 ~ (Delta Lits.* Length1 M r < Length1 M l)
+         , flag1 ~ (Delta Lits.* Length l < Length r)
+         , flag2 ~ (Delta Lits.* Length r < Length l)
          , Link' flag1 flag2 k a l r z
          )
         => Link k a ('B lk la ll lr) ('B rk ra rl rr) z where
@@ -812,8 +815,8 @@ instance Link2 ('B lk la ll lr) 'T ('B lk la ll lr) where
 
 instance ( l ~ 'B lk la ll lr
          , r ~ 'B rk ra rl rr
-         , flag1 ~ (Delta Lits.* Length1 M l < Length1 M r)
-         , flag2 ~ (Delta Lits.* Length1 M r < Length1 M l)
+         , flag1 ~ (Delta Lits.* Length l < Length r)
+         , flag2 ~ (Delta Lits.* Length r < Length l)
          , Link2' flag1 flag2 l r z
          )
         => Link2 ('B lk la ll lr) ('B rk ra rl rr) z where
@@ -1223,7 +1226,7 @@ instance Glue ('B lk la ll lr) 'T ('B lk la ll lr) where
 
 instance ( l ~ 'B lk la ll lr
          , r ~ 'B rk ra rl rr
-         , flag ~ (Length1 M l > Length1 M r)
+         , flag ~ (Length l > Length r)
          , Glue' flag l r z
          )
         => Glue ('B lk la ll lr) ('B rk ra rl rr) z where
@@ -1419,7 +1422,7 @@ instance Difference ('B ak aa al ar) 'T ('B ak aa al ar) where
 instance ( SplitS bk ('B ak aa al ar) l1 r1
          , Difference l1 bl l1l2
          , Difference r1 br r1r2
-         , flag ~ (Length1 M l1l2 + Length1 M r1r2 == Length1 M ('B ak aa al ar))
+         , flag ~ (Length l1l2 + Length r1r2 == Length ('B ak aa al ar))
          , Difference' flag ('B ak aa al ar) ('B bk ba bl br) z
          )
         => Difference ('B ak aa al ar) ('B bk ba bl br) z where

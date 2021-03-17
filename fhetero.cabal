@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 278fd2ebcc24eab292e77d14d765fa8216a48fe43179ec072ec0dc3005f39c15
+-- hash: 9b145f7b3e8f716f819cb34393b762ffeeced5212e77b95394eec740b7057234
 
 name:           fhetero
 version:        0.1.5.2
@@ -32,9 +32,12 @@ library
       Data.FHList.Internal
       Data.FHMap
       Data.FHMap.Internal
-      Data.Type.Extra
+      Data.Type.Eq
+      Data.Type.Length
       Data.Type.List
       Data.Type.Map
+      Data.Type.Materialize
+      Data.Type.Ord
   other-modules:
       Paths_fhetero
   hs-source-dirs:

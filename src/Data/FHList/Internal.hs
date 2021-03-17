@@ -16,9 +16,11 @@
 
 module Data.FHList.Internal where
 
-import           Data.Type.Bool
-import           Data.Type.Extra
+import           Data.Type.Eq
+import           Data.Type.Length
+import           Data.Type.Materialize
 
+import           Data.Type.Bool
 import           Data.List (intercalate)
 import           Data.Proxy
 import           GHC.Generics
@@ -215,8 +217,8 @@ null _      = False
 
 
 -- | Length of the list is known at compilation time.
-length :: KnownNat (Length1 [] as) => FHList f as -> Integer
-length (_ :: FHList f as) = natVal (Proxy :: Proxy (Length1 [] as))
+length :: KnownNat (Length as) => FHList f as -> Integer
+length (_ :: FHList f as) = natVal (Proxy :: Proxy (Length as))
 
 
 

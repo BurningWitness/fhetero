@@ -6,14 +6,14 @@
 
 module Data.Type.List where
 
-import           Data.Type.Extra
+import           Data.Type.Length
 
 import           GHC.TypeLits
 
 
 
-type instance Length1 [] '[]    = 0
-type instance Length1 [] (a:as) = 1 + Length1 [] as
+type instance Length '[]    = 0
+type instance Length (a:as) = 1 + Length as
 
 
 

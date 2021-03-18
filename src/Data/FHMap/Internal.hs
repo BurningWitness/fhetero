@@ -243,7 +243,7 @@ instance Blank a
 
 
 
-type Map p as = MapWithKey (Blank :: k -> Constraint) p (as :: M k)
+type Map p (as :: M k) = MapWithKey (Blank :: k -> Constraint) p as
 
 map
   :: Map p as
@@ -276,7 +276,7 @@ instance ( o k
 
 
 
-type Fold p as = FoldWithKey (Blank :: k -> Constraint) p (as :: M k)
+type Fold p (as :: M k) = FoldWithKey (Blank :: k -> Constraint) p as
 
 foldMap
   :: (Fold p as, Monoid m)
@@ -404,7 +404,7 @@ instance ( o k
 
 
 
-type Traverse p as = TraverseWithKey (Blank :: k -> Constraint) p (as :: M k)
+type Traverse p (as :: M k) = TraverseWithKey (Blank :: k -> Constraint) p as
 
 traverse
   :: (Traverse p as, Applicative m)

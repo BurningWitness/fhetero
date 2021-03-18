@@ -99,11 +99,13 @@ module Data.FHMap
   , Map
   , map
   , MapWithKey (..)
+  , Traverse
   , traverse
   , TraverseWithKey (..)
   , traverse_
   , traverseWithKey_
     -- * Folds
+  , Blank
   , Fold
   , foldr
   , foldl

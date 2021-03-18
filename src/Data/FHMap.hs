@@ -1,8 +1,9 @@
 {- | = Finite type-level maps (lazy interface)
      
-     The @'HMap' (t :: k -> *) (vs :: M Symbol)@ represents a finite heterogenous map
-     (sometimes called a dictionary) from keys of kind 'GHC.TypeLits.Symbol' to values
-     of arbitrary types of kind @k@, each wrapped into @t@.
+     The @'HMap' (t :: k -> *) (vs :: M s)@ represents a finite heterogenous map
+     (sometimes called a dictionary) from keys of kind 's' (comparable via
+     'Data.Type.Ord.TypeOrd')
+     to values of arbitrary types of kind @k@, each wrapped into @t@.
 
      These modules are intended to be imported qualified, to avoid name
      clashes with Prelude or
@@ -42,12 +43,16 @@ module Data.FHMap
   , empty
   , singleton
     -- ** From unordered lists
-  , FromList
-  , fromList
-  , FromListUnique
-  , fromListUnique
-  , FromListId
-  , fromListId
+    -- | This can most definitely be ported info a function of type
+    --   @FHList Identity as -> FHMap f bs@, where @as ~ ([(Proxy k, f bs)] :: *)@,
+    --   but it leads to an atrocious six type class ladder.
+    --
+    --   You should probably just make a type class that loops 'insert's instead, which
+    --   won't lock you into 2-tuples with 'Proxy'.
+    --
+    --   If you really think you need that code it's at commit
+    --   @f9080719a75eb32cf608fc862fd2a1d9b09a4fae@.
+
     -- * Insertion
   , Insert
   , insert
@@ -91,6 +96,7 @@ module Data.FHMap
   , Intersection (..)
     -- * Traversal
     -- ** Map
+  , Map
   , map
   , MapWithKey (..)
   , traverse
@@ -98,6 +104,7 @@ module Data.FHMap
   , traverse_
   , traverseWithKey_
     -- * Folds
+  , Fold
   , foldr
   , foldl
   , foldrWithKey

@@ -7,6 +7,8 @@
 
 module Data.Type.Ord
   ( TypeOrd (..)
+    -- * Extra stuff
+  , Or
   ) where
 
 import           Data.Type.Eq
@@ -19,6 +21,7 @@ import           Prelude
 
 
 
+-- | '(||)' on 'Ordering's.
 type family Or (a :: Ordering) (b :: Ordering) :: Ordering where
   Or 'GT _ = 'GT
   Or 'LT _ = 'LT

@@ -21,7 +21,6 @@ import           Data.Type.Length
 import           Data.Type.Materialize
 
 import           Data.Type.Bool
-import           Data.List (intercalate)
 import           Data.Proxy
 import           GHC.Generics
 import           GHC.TypeLits as Lits
@@ -87,17 +86,23 @@ pattern (:&>:) a b = a :&> b :&> FHZero
 
 
 
-instance ShowFH f a => Show (FHList f a) where
-  show = ("fromList " <>) . (\a -> "[" <> a <> "]") . intercalate "," . showFH
+instance ShowFH 'True f as => Show (FHList f as) where
+  showsPrec d as = showParen (d > 10) $
+                       showString "fromList ["
+                     . showFH (Proxy :: Proxy 'True) as
+                     . showChar ']'
 
-class ShowFH f a where
-  showFH :: FHList f a -> [String]
+class ShowFH b f a where
+  showFH :: Proxy b -> FHList f a -> ShowS
 
-instance ShowFH f '[] where
-  showFH FHZero = []
+instance ShowFH b f '[] where
+  showFH _ FHZero = id
 
-instance (Show (f a), ShowFH f as) => ShowFH f (a:as) where
-  showFH (a :&> b) = show a : showFH b
+instance (Show (f a), ShowFH 'False f as) => ShowFH 'True f (a:as) where
+  showFH _ (a :&> b) = shows a . showFH (Proxy :: Proxy 'False) b
+
+instance (Show (f a), ShowFH 'False f as) => ShowFH 'False f (a:as) where
+  showFH _ (a :&> b) = showChar ',' . shows a . showFH (Proxy :: Proxy 'False) b
 
 
 

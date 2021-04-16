@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 009e4c030a71918489edfadc04a62b54c97e0811d614f23bb2324d31d2a8fd93
+-- hash: ef17e237f3ba7f0a1c669e1f546ce7639814c747cf1e781cfc495f986c298b42
 
 name:           fhetero
-version:        0.1.6.0
+version:        0.1.7.0
 synopsis:       Heterogenous containers wrapped into functors
 description:    Please see the README on GitHub at <https://github.com/burningwitness/fhetero#readme>
 category:       Data
@@ -28,10 +28,18 @@ source-repository head
 
 library
   exposed-modules:
+      Data.FHDecision
+      Data.FHDecision.Internal
+      Data.FHFoldable
+      Data.FHFunctor
       Data.FHList
       Data.FHList.Internal
       Data.FHMap
       Data.FHMap.Internal
+      Data.FHTraversable
+      Data.OneOf
+      Data.OneOf.Internal
+      Data.Type.Decision
       Data.Type.Eq
       Data.Type.Length
       Data.Type.List

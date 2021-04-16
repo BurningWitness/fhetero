@@ -1,20 +1,21 @@
 # fhetero
 
-Dirty ports of containers'
-[lazy Maps](https://hackage.haskell.org/package/containers/docs/Data-Map-Lazy.html)
-and good old Haskell [lists](https://hackage.haskell.org/package/base/docs/Data-List.html)
-into the realm of type-level data structures.
+Heterogenous data structures that wrap elements into @f@.
 
-Type-level lists are represented as `FHList (f :: k -> *) (as :: [k])`,
-where each __type__ (or kind) inside a type-level list is wrapped into `f`;
+Currently offering:
 
-Type-level maps are represented as `FHMap (f :: v -> *) (as :: M k)` with keys
-comparable through TypeOrd, where each __type__ (or kind) inside a type-level map
-is wrapped into `f`;
+  * `FHList (f :: k -> *) (as :: [k])`: dirty port of Haskell
+    [lists](https://hackage.haskell.org/package/base/docs/Data-List.html);
 
-Implementation-wise everything is just a straight up copy from modules linked above,
-except elevated into type classes with functional dependencies. No inlining or RULES ported
-and a lot of code in `Data.FHMap.Internal` looks like absolute sin.
+  * `FHMap (f :: v -> *) (as :: M k)`: dirty port of containers'
+    [lazy Maps](https://hackage.haskell.org/package/containers/docs/Data-Map-Lazy.html).
+    `k` here can be any `TypeOrd`-comparable kind, not just `Symbol`;
+
+  * `OneOf (f :: v -> *) (as :: M ())`: upgraded `Either` that works on any number
+    of elements;
+
+  * `FHDecision (f :: v -> *) (as :: Dec)`: non-monadic decision trees, supporting
+    chaining through `(>>)`, data-level (through `OneOf`) and type-level choices.
 
 Concerning the GHC versions: this can definitely be backwired to support GHC 8.4,
 but that requires adding `TypeInType` pragma and `Data.Kind` import which also conflicts

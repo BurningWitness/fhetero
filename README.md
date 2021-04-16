@@ -1,6 +1,6 @@
 # fhetero
 
-Heterogenous data structures that wrap elements into @f@.
+Heterogenous data structures that wrap elements into `f`.
 
 Currently offering:
 

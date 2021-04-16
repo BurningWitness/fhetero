@@ -14,8 +14,13 @@
            , TypeOperators
            , UndecidableInstances #-}
 
+{-# OPTIONS_HADDOCK not-home #-}
+
 module Data.FHList.Internal where
 
+import           Data.FHFoldable
+import           Data.FHFunctor
+import           Data.FHTraversable
 import           Data.Type.Eq
 import           Data.Type.Length
 import           Data.Type.Materialize
@@ -107,6 +112,9 @@ instance (Show (f a), ShowFH 'False f as) => ShowFH 'False f (a:as) where
 
 
 
+instance Map p as => FHFunctor FHList p as where
+  fhfmap = map
+
 class Map p as where
   map :: Proxy p -> (forall a. p a => f a -> g a) -> FHList f as -> FHList g as
 
@@ -117,6 +125,13 @@ instance (p a, Map p as) => Map p (a : as) where
   map p f (a :&> as) = f a :&> map p f as
 
 
+
+instance Fold p as => FHFoldable FHList p as where
+  fhfoldMap = foldMap
+  fhfoldl = foldl
+  fhfoldl' = foldl'
+  fhfoldr = foldr
+  fhfoldr' = foldr'
 
 class Fold p as where
   foldMap :: Monoid m => Proxy p -> (forall a. p a => f a -> m) -> FHList f as -> m
@@ -153,6 +168,9 @@ instance (p a, Fold p as) => Fold p (a : as) where
 
 
 
+instance Traverse p as => FHTraversable FHList p as where
+  fhtraverse = traverse
+
 class Traverse p as where
   traverse
     :: Applicative m
@@ -166,42 +184,6 @@ instance Traverse p '[] where
 
 instance (p a, Traverse p as) => Traverse p (a ': as) where
   traverse p f (a :&> as) = (:&>) <$> f a <*> traverse p f as
-
-
-
-foldrM
-  :: (Fold p as, Monad m)
-  => Proxy p
-  -> (forall a. p a => f a -> b -> m b)
-  -> b
-  -> FHList f as
-  -> m b
-foldrM p f z0 xs = foldl p (\k x z -> f x z >>= k) return xs z0
-
-foldlM
-  :: (Fold p as, Monad m)
-  => Proxy p
-  -> (forall a. p a => b -> f a -> m b)
-  -> b
-  -> FHList f as
-  -> m b
-foldlM p f z0 xs = foldr p (\x k z -> f z x >>= k) return xs z0
-
-traverse_
-  :: (Fold p as, Applicative m)
-  => Proxy p
-  -> (forall a. p a => f a -> m ())
-  -> FHList f as
-  -> m ()
-traverse_ p f = foldr p (\x -> (f x *>)) $ pure ()
-
-for_
-  :: (Fold p as, Applicative m)
-  => Proxy p
-  -> FHList f as
-  -> (forall a. p a => f a -> m ())
-  -> m ()
-for_ p f d = traverse_ p d f
 
 
 

@@ -15,11 +15,7 @@ module Data.FHList
     -- * Folds
   , Fold (..)
     -- ** Monadic
-  , foldlM
-  , foldrM
   , Traverse (..)
-  , traverse_
-  , for_
     -- * Sublists
   , Take (..)
   , Drop (..)

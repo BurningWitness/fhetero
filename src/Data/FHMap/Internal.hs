@@ -20,7 +20,10 @@
 
 module Data.FHMap.Internal where
 
+import           Data.FHFoldable
+import           Data.FHFunctor
 import           Data.FHList (FHList (..))
+import           Data.FHTraversable
 import           Data.Type.Eq
 import           Data.Type.Length
 import           Data.Type.Map
@@ -36,7 +39,7 @@ import           Data.Type.Bool
 import           Data.Void
 import           GHC.Generics
 import           GHC.TypeLits as Lits hiding (type (<=))
-import           Prelude hiding (lookup, map, foldr)
+import           Prelude hiding (lookup, map, Foldable (..), Traversable (..))
 
 
 
@@ -243,6 +246,9 @@ instance Blank a
 
 
 
+instance Map p as => FHFunctor FHMap p as where
+  fhfmap = map
+
 type Map p (as :: M k) = MapWithKey (Blank :: k -> Constraint) p as
 
 map
@@ -275,6 +281,13 @@ instance ( o k
     FHBin p (f p a) (mapWithKey o q f l) (mapWithKey o q f r)
 
 
+
+instance Fold p as => FHFoldable FHMap p as where
+  fhfoldMap = foldMap
+  fhfoldl = foldl
+  fhfoldl' = foldl'
+  fhfoldr = foldr
+  fhfoldr' = foldr'
 
 type Fold p (as :: M k) = FoldWithKey (Blank :: k -> Constraint) p as
 
@@ -404,6 +417,9 @@ instance ( o k
 
 
 
+instance Traverse p as => FHTraversable FHMap p as where
+  fhtraverse = traverse
+
 type Traverse p (as :: M k) = TraverseWithKey (Blank :: k -> Constraint) p as
 
 traverse
@@ -437,14 +453,6 @@ instance ( o k
     liftA3 (flip $ FHBin k) (traverseWithKey o p f l) (f k a) (traverseWithKey o p f r)
 
 
-
-traverse_
-  :: (Fold p as, Applicative m)
-  => Proxy p
-  -> (forall a. p a => f a -> m ())
-  -> FHMap f as
-  -> m ()
-traverse_ p f = foldr p (\a acc -> f a *> acc) $ pure ()
 
 traverseWithKey_
   :: (FoldWithKey o p as, Applicative m)

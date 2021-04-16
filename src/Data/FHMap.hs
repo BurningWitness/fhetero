@@ -102,7 +102,6 @@ module Data.FHMap
   , Traverse
   , traverse
   , TraverseWithKey (..)
-  , traverse_
   , traverseWithKey_
     -- * Folds
   , Blank

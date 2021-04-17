@@ -7,7 +7,7 @@ module Data.FHDecision
   , (>..)
   , (>!!)
   , limitD
-  , boolD
+  , ifThenElse
     -- * Processing a tree
   , Collect
     -- * Rebound

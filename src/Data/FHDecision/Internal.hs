@@ -131,7 +131,7 @@ instance FHFoldable FHDecision p b
 --
 --     * Branching using '(>..)' and '(>!!)' (see "Data.OneOf" for explanation of that system);
 --
---     * Type-level branching using 'boolD' and @('Proxy' :: 'Proxy' 'Bool')@ as a condition.
+--     * Type-level branching using 'ifThenElse' and @('Proxy' :: 'Proxy' 'Bool')@ as a condition.
 --
 --   To obtain the result you need just fold the tree.
 --
@@ -156,10 +156,14 @@ instance FHFoldable FHDecision p b
 --         Just (Right _) -> (Proxy :: Proxy 1) '>..' do 'action' $ Just ()
 --         Nothing        -> (Proxy :: Proxy 2) '>!!' do 'action' $ Just False
 --       'actions' [Just (), Just (), Just ()]
---       'boolD' (Proxy :: Proxy 'True)
---         ('action' $ Just \'a\')
---         ('action' $ Just "a")
+--       if Proxy :: Proxy 'True
+--         then 'action' $ Just \'a\'
+--         else 'action' $ Just "a"
 --   @
+--
+--   It should be noted that in spite the fact that every single type-level value is
+--   represented in terms of some data constructor, you cannot produce an infinite type
+--   in Haskell. You can still wrap things into a list on the outside though ;)
 data FHDecision (f :: k -> *) (as :: Dec) where
   FHSingle :: FHSingle f as -> FHDecision f ('Single as)
 
@@ -199,40 +203,40 @@ instance FHFoldable FHList (FHFoldable FHDecision p) as
 
 class ReboundSeq a b c | a b -> c where
   -- | Rebind of '(Pre.>>)' that chains operations in 'FHDecision' trees.
-  (>>) :: f ~ g => FHDecision f a -> FHDecision g b -> FHDecision g c
+  (>>) :: f ~ g => FHDecision f a -> FHDecision g b -> FHDecision g ('TChain c)
 
-instance ReboundSeq ('Single a) ('Single b) ('TChain '[ 'Single a, 'Single b ]) where
+instance ReboundSeq ('Single a) ('Single b) '[ 'Single a, 'Single b ] where
   a >> b = FHTypeChain $ coerce a :&>: coerce b
 
-instance ReboundSeq ('Single a) ('TChain bs) ('TChain ('Single a ': bs)) where
+instance ReboundSeq ('Single a) ('TChain bs) ('Single a ': bs) where
   a >> FHTypeChain b = FHTypeChain $ coerce a :&> b
 
 instance FHList.Concat as '[ 'Single b ] cs
-      => ReboundSeq ('TChain as) ('Single b) ('TChain cs) where
+      => ReboundSeq ('TChain as) ('Single b) cs where
   FHTypeChain a >> b = FHTypeChain $ coerce a FHList.++ FHList.singleton b
 
 instance FHList.Concat as bs cs
-      => ReboundSeq ('TChain as) ('TChain bs) ('TChain cs) where
+      => ReboundSeq ('TChain as) ('TChain bs) cs where
   FHTypeChain a >> FHTypeChain b = FHTypeChain $ coerce a FHList.++ coerce b
 
 
 
-class BoolD cond a b c | cond a b -> c, cond a c -> b, cond b c -> a where
-  -- | A variant of 'bool' that wraps both sides into an 'FHDecision'.
+class IfThenElse cond a b c | cond a b -> c, cond a c -> b, cond b c -> a where
+  -- | A variant of 'if' that wraps both sides into an 'FHDecision'.
   --
   --   Allows for @'Proxy' 'Bool'@s as conditionals. In these proxied cases branches
   --   that remain unused are removed from the 'Collect' type list too.
-  boolD :: cond -> a -> b -> c
+  ifThenElse :: cond -> a -> b -> c
 
 instance f ~ g
-      => BoolD (Proxy cond) (FHDecision f a) (FHDecision g b)
+      => IfThenElse (Proxy cond) (FHDecision f a) (FHDecision g b)
                  (FHDecision g ('Single ('TChoice cond a b))) where
-  boolD cond tru fal = FHSingle $ FHTypeChoice cond tru fal
+  ifThenElse cond tru fal = FHSingle $ FHTypeChoice cond tru fal
 
 instance f ~ g
-      => BoolD Bool (FHDecision f a) (FHDecision g b)
+      => IfThenElse Bool (FHDecision f a) (FHDecision g b)
                  (FHDecision g ('Single ('DChoice ('B '() a ('B '() b 'T 'T) 'T)))) where
-  boolD cond tru fal =
+  ifThenElse cond tru fal =
     FHSingle . FHDataChoice $ if cond
                                 then (Proxy :: Proxy 0) >.< tru
                                 else (Proxy :: Proxy 1) >!< fal

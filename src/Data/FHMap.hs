@@ -66,6 +66,8 @@ module Data.FHMap
   , delete'
   , Adjust
   , adjust
+  , AdjustId
+  , adjustId
   , Adjust'
   , adjust'
     -- * Query

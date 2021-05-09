@@ -1204,6 +1204,14 @@ adjust f k = snd . adjustI (Proxy :: Proxy 'IfExists) f k
 
 
 
+type AdjustId a k m d = Adjust a a k m d m
+
+-- | 'adjust' with no type changes.
+adjustId :: AdjustId a k m d => (f a -> f a) -> Proxy k -> FHMap f m -> FHMap f m
+adjustId = adjust
+
+
+
 type Adjust' = AdjustI 'EitherWay
 
 -- | Update a value at a specific key with the result of the provided function.

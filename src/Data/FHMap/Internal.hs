@@ -12,7 +12,6 @@
            , Rank2Types
            , ScopedTypeVariables
            , TypeFamilies
-           , TypeFamilyDependencies
            , TypeOperators
            , UndecidableInstances #-}
 
@@ -340,6 +339,81 @@ foldl'
 foldl' p f acc (as :: FHMap f (as :: M k)) =
   foldlWithKey' (Proxy :: Proxy (Blank :: k -> Constraint)) p (\b _ -> f b) acc as
 
+zip
+  :: Fold p as
+  => Proxy p
+  -> (forall a. p a => f a -> g a -> h a)
+  -> FHMap f as
+  -> FHMap g as
+  -> FHMap h as
+zip p f (as :: FHMap f (as :: M k)) =
+  zipWithKey (Proxy :: Proxy (Blank :: k -> Constraint)) p (const f) as
+
+zip3
+  :: Fold p as
+  => Proxy p
+  -> (forall a. p a => f a -> g a -> h a -> i a)
+  -> FHMap f as
+  -> FHMap g as
+  -> FHMap h as
+  -> FHMap i as
+zip3 p f (as :: FHMap f (as :: M k)) =
+  zip3WithKey (Proxy :: Proxy (Blank :: k -> Constraint)) p (const f) as
+
+zip4
+  :: Fold p as
+  => Proxy p
+  -> (forall a. p a => f a -> g a -> h a -> i a -> j a)
+  -> FHMap f as
+  -> FHMap g as
+  -> FHMap h as
+  -> FHMap i as
+  -> FHMap j as
+zip4 p f (as :: FHMap f (as :: M k)) =
+  zip4WithKey (Proxy :: Proxy (Blank :: k -> Constraint)) p (const f) as
+
+zip5
+  :: Fold p as
+  => Proxy p
+  -> (forall a. p a => f a -> g a -> h a -> i a -> j a -> l a)
+  -> FHMap f as
+  -> FHMap g as
+  -> FHMap h as
+  -> FHMap i as
+  -> FHMap j as
+  -> FHMap l as
+zip5 p f (as :: FHMap f (as :: M k)) =
+  zip5WithKey (Proxy :: Proxy (Blank :: k -> Constraint)) p (const f) as
+
+zip6
+  :: Fold p as
+  => Proxy p
+  -> (forall a. p a => f a -> g a -> h a -> i a -> j a -> l a -> m a)
+  -> FHMap f as
+  -> FHMap g as
+  -> FHMap h as
+  -> FHMap i as
+  -> FHMap j as
+  -> FHMap l as
+  -> FHMap m as
+zip6 p f (as :: FHMap f (as :: M k)) =
+  zip6WithKey (Proxy :: Proxy (Blank :: k -> Constraint)) p (const f) as
+
+zip7
+  :: Fold p as
+  => Proxy p
+  -> (forall a. p a => f a -> g a -> h a -> i a -> j a -> l a -> m a -> n a)
+  -> FHMap f as
+  -> FHMap g as
+  -> FHMap h as
+  -> FHMap i as
+  -> FHMap j as
+  -> FHMap l as
+  -> FHMap m as
+  -> FHMap n as
+zip7 p f (as :: FHMap f (as :: M k)) =
+  zip7WithKey (Proxy :: Proxy (Blank :: k -> Constraint)) p (const f) as
+
 
 
 class FoldWithKey o p as where
@@ -383,6 +457,69 @@ class FoldWithKey o p as where
     -> FHMap f as
     -> b
 
+  zipWithKey
+    :: Proxy o
+    -> Proxy p
+    -> (forall k a. (o k, p a) => Proxy k -> f a -> g a -> h a)
+    -> FHMap f as
+    -> FHMap g as
+    -> FHMap h as
+
+  zip3WithKey
+    :: Proxy o
+    -> Proxy p
+    -> (forall k a. (o k, p a) => Proxy k -> f a -> g a -> h a -> i a)
+    -> FHMap f as
+    -> FHMap g as
+    -> FHMap h as
+    -> FHMap i as
+
+  zip4WithKey
+    :: Proxy o
+    -> Proxy p
+    -> (forall k a. (o k, p a) => Proxy k -> f a -> g a -> h a -> i a -> j a)
+    -> FHMap f as
+    -> FHMap g as
+    -> FHMap h as
+    -> FHMap i as
+    -> FHMap j as
+
+  zip5WithKey
+    :: Proxy o
+    -> Proxy p
+    -> (forall k a. (o k, p a) => Proxy k -> f a -> g a -> h a -> i a -> j a -> l a)
+    -> FHMap f as
+    -> FHMap g as
+    -> FHMap h as
+    -> FHMap i as
+    -> FHMap j as
+    -> FHMap l as
+
+  zip6WithKey
+    :: Proxy o
+    -> Proxy p
+    -> (forall k a. (o k, p a) => Proxy k -> f a -> g a -> h a -> i a -> j a -> l a -> m a)
+    -> FHMap f as
+    -> FHMap g as
+    -> FHMap h as
+    -> FHMap i as
+    -> FHMap j as
+    -> FHMap l as
+    -> FHMap m as
+
+  zip7WithKey
+    :: Proxy o
+    -> Proxy p
+    -> (forall k a. (o k, p a) => Proxy k -> f a -> g a -> h a -> i a -> j a -> l a -> m a -> n a)
+    -> FHMap f as
+    -> FHMap g as
+    -> FHMap h as
+    -> FHMap i as
+    -> FHMap j as
+    -> FHMap l as
+    -> FHMap m as
+    -> FHMap n as
+
 instance FoldWithKey o p 'T where
   foldMapWithKey _ _ _ FHTip = mempty
   
@@ -393,6 +530,13 @@ instance FoldWithKey o p 'T where
   foldlWithKey _ _ _ t FHTip = t
 
   foldlWithKey' _ _ _ !t FHTip = t
+
+  zipWithKey  _ _ _ _ _ = FHTip
+  zip3WithKey _ _ _ _ _ _ = FHTip
+  zip4WithKey _ _ _ _ _ _ _ = FHTip
+  zip5WithKey _ _ _ _ _ _ _ _ = FHTip
+  zip6WithKey _ _ _ _ _ _ _ _ _ = FHTip
+  zip7WithKey _ _ _ _ _ _ _ _ _ _ = FHTip
 
 instance ( o k
          , p a
@@ -414,6 +558,24 @@ instance ( o k
 
   foldlWithKey' o p f t (FHBin k a l r) =
     foldlWithKey' o p f (f (foldlWithKey' o p f t l) k a) r
+
+  zipWithKey o p f (FHBin k a la ra) (FHBin _ b lb rb) =
+    FHBin k (f k a b) (zipWithKey o p f la lb) (zipWithKey o p f ra rb)
+
+  zip3WithKey o p f (FHBin k a la ra) (FHBin _ b lb rb) (FHBin _ c lc rc) =
+    FHBin k (f k a b c) (zip3WithKey o p f la lb lc) (zip3WithKey o p f ra rb rc)
+
+  zip4WithKey o p f (FHBin k a la ra) (FHBin _ b lb rb) (FHBin _ c lc rc) (FHBin _ d ld rd) =
+    FHBin k (f k a b c d) (zip4WithKey o p f la lb lc ld) (zip4WithKey o p f ra rb rc rd)
+
+  zip5WithKey o p f (FHBin k a la ra) (FHBin _ b lb rb) (FHBin _ c lc rc) (FHBin _ d ld rd) (FHBin _ e le re) =
+    FHBin k (f k a b c d e) (zip5WithKey o p f la lb lc ld le) (zip5WithKey o p f ra rb rc rd re)
+
+  zip6WithKey o p f (FHBin k a la ra) (FHBin _ b lb rb) (FHBin _ c lc rc) (FHBin _ d ld rd) (FHBin _ e le re) (FHBin _ g lg rg) =
+    FHBin k (f k a b c d e g) (zip6WithKey o p f la lb lc ld le lg) (zip6WithKey o p f ra rb rc rd re rg)
+
+  zip7WithKey o p f (FHBin k a la ra) (FHBin _ b lb rb) (FHBin _ c lc rc) (FHBin _ d ld rd) (FHBin _ e le re) (FHBin _ g lg rg) (FHBin _ h lh rh) =
+    FHBin k (f k a b c d e g h) (zip7WithKey o p f la lb lc ld le lg lh) (zip7WithKey o p f ra rb rc rd re rg rh)
 
 
 

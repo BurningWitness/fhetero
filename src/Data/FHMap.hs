@@ -108,11 +108,24 @@ module Data.FHMap
     -- * Folds
   , Blank
   , Fold
+  , foldMap
   , foldr
   , foldl
+  , zip
+  , zip3
+  , zip4
+  , zip5
+  , zip6
+  , zip7
+  , foldMapWithKey
   , foldrWithKey
   , foldlWithKey
-  , foldMapWithKey
+  , zipWithKey
+  , zip3WithKey
+  , zip4WithKey
+  , zip5WithKey
+  , zip6WithKey
+  , zip7WithKey
   , FoldWithKey
     -- ** Strict folds
   , foldr'

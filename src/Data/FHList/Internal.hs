@@ -30,7 +30,7 @@ import           Data.Proxy
 import           GHC.Generics
 import           GHC.TypeLits as Lits
 import           Prelude hiding ( map, concat, foldr, foldl, foldMap
-                                , traverse, (++), (!!), take, drop
+                                , traverse, (++), (!!), take, drop, zip, zip3
                                 )
 
 
@@ -144,6 +144,65 @@ class Fold p as where
 
   foldl' :: Proxy p -> (forall a. p a => b -> f a -> b) -> b -> FHList f as -> b
 
+  zip
+    :: Proxy p
+    -> (forall a. p a => f a -> g a -> h a)
+    -> FHList f as
+    -> FHList g as
+    -> FHList h as
+
+  zip3
+    :: Proxy p
+    -> (forall a. p a => f a -> g a -> h a -> i a)
+    -> FHList f as
+    -> FHList g as
+    -> FHList h as
+    -> FHList i as
+
+  zip4
+    :: Proxy p
+    -> (forall a. p a => f a -> g a -> h a -> i a -> j a)
+    -> FHList f as
+    -> FHList g as
+    -> FHList h as
+    -> FHList i as
+    -> FHList j as
+
+  zip5
+    :: Proxy p
+    -> (forall a. p a => f a -> g a -> h a -> i a -> j a -> l a)
+    -> FHList f as
+    -> FHList g as
+    -> FHList h as
+    -> FHList i as
+    -> FHList j as
+    -> FHList l as
+
+  zip6
+    :: Proxy p
+    -> (forall a. p a => f a -> g a -> h a -> i a -> j a -> l a -> m a)
+    -> FHList f as
+    -> FHList g as
+    -> FHList h as
+    -> FHList i as
+    -> FHList j as
+    -> FHList l as
+    -> FHList m as
+
+  zip7
+    :: Proxy p
+    -> (forall a. p a => f a -> g a -> h a -> i a -> j a -> l a -> m a -> n a)
+    -> FHList f as
+    -> FHList g as
+    -> FHList h as
+    -> FHList i as
+    -> FHList j as
+    -> FHList l as
+    -> FHList m as
+    -> FHList n as
+
+
+
 instance Fold p '[] where
   foldMap _ _ FHZero = mempty
 
@@ -155,6 +214,18 @@ instance Fold p '[] where
 
   foldl' _ _ !t FHZero = t
 
+  zip _ _ FHZero FHZero = FHZero
+
+  zip3 _ _ FHZero FHZero FHZero = FHZero
+
+  zip4 _ _ FHZero FHZero FHZero FHZero = FHZero
+
+  zip5 _ _ FHZero FHZero FHZero FHZero FHZero = FHZero
+
+  zip6 _ _ FHZero FHZero FHZero FHZero FHZero FHZero = FHZero
+
+  zip7 _ _ FHZero FHZero FHZero FHZero FHZero FHZero FHZero = FHZero
+
 instance (p a, Fold p as) => Fold p (a : as) where
   foldMap p f (a :&> as) = f a <> foldMap p f as
 
@@ -165,6 +236,21 @@ instance (p a, Fold p as) => Fold p (a : as) where
   foldl p f t (a :&> as) = foldl p f (f t a) as
 
   foldl' p f t (a :&> as) = foldl' p f (f t a) as
+
+  zip p f (a :&> as) (b :&> bs) = f a b :&> zip p f as bs
+
+  zip3 p f (a :&> as) (b :&> bs) (c :&> cs) = f a b c :&> zip3 p f as bs cs
+
+  zip4 p f (a :&> as) (b :&> bs) (c :&> cs) (d :&> ds) = f a b c d :&> zip4 p f as bs cs ds
+
+  zip5 p f (a :&> as) (b :&> bs) (c :&> cs) (d :&> ds) (e :&> es) =
+    f a b c d e :&> zip5 p f as bs cs ds es
+
+  zip6 p f (a :&> as) (b :&> bs) (c :&> cs) (d :&> ds) (e :&> es) (g :&> gs) =
+    f a b c d e g :&> zip6 p f as bs cs ds es gs
+
+  zip7 p f (a :&> as) (b :&> bs) (c :&> cs) (d :&> ds) (e :&> es) (g :&> gs) (h :&> hs) =
+    f a b c d e g h :&> zip7 p f as bs cs ds es gs hs
 
 
 

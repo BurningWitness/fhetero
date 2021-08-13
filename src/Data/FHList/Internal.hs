@@ -24,12 +24,13 @@ import           Data.FHTraversable
 import           Data.Type.Eq
 import           Data.Type.Length
 import           Data.Type.Materialize
+import           Data.Type.Ord
 
 import           Data.Type.Bool
 import           Data.Proxy
 import           GHC.Generics
 import           GHC.TypeLits as Lits
-import           Prelude hiding ( map, concat, foldr, foldl, foldMap
+import           Prelude hiding ( map, concat, foldr, foldl, foldMap, replicate
                                 , traverse, (++), (!!), take, drop, zip, zip3
                                 )
 
@@ -447,3 +448,20 @@ instance Concat '[] bs bs where
 
 instance Concat as (b ': bs) cs => Concat (a ': as) (b ': bs) (a ': cs) where
   (++) (a :&> as) bs = a :&> as ++ bs
+
+
+
+class Replicate n a as | n a -> as where
+  replicate :: Proxy n -> f a -> FHList f as
+
+instance (flag ~ (n < 1), Replicate' flag n a as) => Replicate n a as where
+  replicate = replicate' (Proxy :: Proxy flag)
+
+class Replicate' flag n a as | flag n a -> as where
+  replicate' :: Proxy flag -> Proxy n -> f a -> FHList f as
+
+instance Replicate' 'True n a '[] where
+  replicate' _ _ _ = FHZero
+
+instance Replicate (n - 1) a as => Replicate' 'False n a (a ': as) where
+  replicate' _ _ a = a :&> replicate (Proxy :: Proxy (n - 1)) a

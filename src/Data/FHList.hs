@@ -10,6 +10,7 @@ module Data.FHList
   , Concat (..)
   , null
   , length
+  , Replicate (..)
     -- * List transformations
   , Map (..)
     -- * Folds

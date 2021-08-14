@@ -31,6 +31,7 @@ import           Data.OneOf
 
 import           Control.Monad hiding ((>>))
 import           Data.Coerce
+import           Data.Proxy
 import           GHC.TypeLits
 import           Prelude hiding ((>>))
 

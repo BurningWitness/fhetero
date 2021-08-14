@@ -106,7 +106,6 @@ module Data.FHMap
   , TraverseWithKey (..)
   , traverseWithKey_
     -- * Folds
-  , Blank
   , Fold
   , foldMap
   , foldr
@@ -142,12 +141,7 @@ module Data.FHMap
   , toDescList
     -- * Re-exports
   , module Data.Type.Map
-  , Proxy (..)
-  , Void
   ) where
 
 import           Data.FHMap.Internal
 import           Data.Type.Map
-
-import           Data.Proxy
-import           Data.Void

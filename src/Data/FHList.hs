@@ -31,10 +31,6 @@ module Data.FHList
   , Nub (..)
   , delete
   , Retrieve
-    -- * Re-exports
-  , Proxy (..)
   ) where
 
 import           Data.FHList.Internal
-
-import           Data.Proxy

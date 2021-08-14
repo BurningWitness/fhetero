@@ -209,7 +209,7 @@ instance Fold p '[] where
 
   foldr _ _ t FHZero = t
 
-  foldr' _ _ !t FHZero = t
+  foldr' _ _ t FHZero = t
 
   foldl _ _ t FHZero = t
 
@@ -232,11 +232,11 @@ instance (p a, Fold p as) => Fold p (a : as) where
 
   foldr p f t (a :&> as) = f a $ foldr p f t as
 
-  foldr' p f t (a :&> as) = f a $ foldr' p f t as
+  foldr' p f t (a :&> as) = f a $! foldr' p f t as
 
   foldl p f t (a :&> as) = foldl p f (f t a) as
 
-  foldl' p f t (a :&> as) = foldl' p f (f t a) as
+  foldl' p f t (a :&> as) = foldl' p f (id $! f t a) as
 
   zip p f (a :&> as) (b :&> bs) = f a b :&> zip p f as bs
 

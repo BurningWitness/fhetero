@@ -19,6 +19,7 @@
 
 module Data.FHMap.Internal where
 
+import           Data.Blank
 import           Data.FHFoldable
 import           Data.FHFunctor
 import           Data.FHList (FHList (..))
@@ -59,7 +60,7 @@ data FHMap (f :: v -> *) (vs :: M s) where
   FHTip :: FHMap f 'T
 
 instance (Functor f, ToAscList f as bs, Show (FHList f bs)) => Show (FHMap f as) where
-  show = show . toAscList
+  showsPrec n = showsPrec n . toAscList
 
 
 
@@ -235,13 +236,6 @@ instance LookupI i q l e a => LookupI' 'LT i q ('B k b l r) e a where
 
 instance LookupI i q r e a => LookupI' 'GT i q ('B k b l r) e a where
   lookupI' _ i q (FHBin _ _ _ r) = lookupI i q r
-
-
-
--- | A catch-all class for disregarding key constraints on @...WithKey@ classes
-class Blank a
-
-instance Blank a
 
 
 

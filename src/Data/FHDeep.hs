@@ -9,7 +9,10 @@
            , ScopedTypeVariables
            , UndecidableInstances #-}
 
-module Data.FHDeep where
+module Data.FHDeep
+  ( module Data.FHDeep
+  , module Data.Type.Deep
+  ) where
 
 import           Data.FHList (FHList (..))
 import qualified Data.FHList as FHList

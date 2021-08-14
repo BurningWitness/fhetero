@@ -266,11 +266,27 @@ class Traverse p as where
     -> FHList f as
     -> m (FHList g as)
 
+  mapAccumL :: Proxy p -> (forall a. p a => b -> f a -> (b, g a)) -> b -> FHList f as -> (b, FHList g as)
+
+  mapAccumR :: Proxy p -> (forall a. p a => b -> f a -> (b, g a)) -> b -> FHList f as -> (b, FHList g as)
+
 instance Traverse p '[] where
   traverse _ _ FHZero = pure FHZero
 
+  mapAccumL _ _ acc FHZero = (acc, FHZero)
+
+  mapAccumR _ _ acc FHZero = (acc, FHZero)
+
 instance (p a, Traverse p as) => Traverse p (a ': as) where
   traverse p f (a :&> as) = (:&>) <$> f a <*> traverse p f as
+
+  mapAccumL p f acc (a :&> as) = let (acc', a') = f acc a
+                                     (acc'', as') = mapAccumL p f acc' as
+                                 in (acc'', a' :&> as')
+
+  mapAccumR p f acc (a :&> as) = let (acc', as') = mapAccumR p f acc as
+                                     (acc'', a') = f acc' a
+                                 in (acc'', a' :&> as')
 
 
 

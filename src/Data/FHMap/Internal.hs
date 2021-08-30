@@ -1229,28 +1229,27 @@ instance UnionC c 'T ('B rk ra rl rr) ('B rk ra rl rr) where
 instance ( flag1 ~ (ll == 'T && lr == 'T)
          , flag2 ~ (rl == 'T && rr == 'T)
          , SplitLookupS lk ('B rk ra rl rr) l2 flag3 r2
-         , flag ~ '(flag1, flag2, flag3 :: Maybe v)
-         , UnionC' flag c ('B lk la ll lr) ('B rk ra rl rr) z 
+         , UnionC' flag1 flag2 (flag3 :: Maybe v) c ('B lk la ll lr) ('B rk ra rl rr) z 
          )
         => UnionC c ('B lk (la :: v) ll lr) ('B rk ra rl rr) z where
-  unionC = unionC' (Proxy :: Proxy flag)
+  unionC = unionC' (Proxy :: Proxy flag1) (Proxy :: Proxy flag2) (Proxy :: Proxy flag3)
 
-class UnionC' (flag :: (Bool, Bool, Maybe v)) (c :: Clobber) l r z | v c l r -> z where
-  unionC' :: Proxy flag -> Proxy c -> FHMap f l -> FHMap f r -> FHMap f z
+class UnionC' (flag1 :: Bool) (flag2 :: Bool) (flag3 :: Maybe v) (c :: Clobber) l r z | v c l r -> z where
+  unionC' :: Proxy flag1 -> Proxy flag2 -> Proxy flag3 -> Proxy c -> FHMap f l -> FHMap f r -> FHMap f z
 
-instance InsertC c rk ra l z => UnionC' '( 'False, 'True, o3) c l ('B rk ra 'T 'T) z where
-  unionC' _ c l (FHBin rk ra FHTip FHTip) = insertC c rk ra l
+instance InsertC c rk ra l z => UnionC' 'False 'True o3 c l ('B rk ra 'T 'T) z where
+  unionC' _ _ _ c l (FHBin rk ra FHTip FHTip) = insertC c rk ra l
 
-instance InsertC c lk la r z => UnionC' '( 'True , o2   , o3) c ('B lk la 'T 'T) r z where
-  unionC' _ c (FHBin lk la FHTip FHTip) = insertC c lk la
+instance InsertC c lk la r z => UnionC' 'True o2 o3 c ('B lk la 'T 'T) r z where
+  unionC' _ _ _ c (FHBin lk la FHTip FHTip) = insertC c lk la
 
 instance ( SplitLookupS lk r l2 ('Nothing :: Maybe v) r2
          , UnionC c ll l2 l1l2
          , UnionC c lr r2 r1r2
          , Link lk la l1l2 r1r2 z
          )
-       => UnionC' '( 'False, 'False, 'Nothing :: Maybe v) c ('B lk (la :: v) ll lr) r z where
-  unionC' _ c (FHBin lk la ll lr :: FHMap f l) r =
+       => UnionC' 'False 'False ('Nothing :: Maybe v) c ('B lk (la :: v) ll lr) r z where
+  unionC' _ _ _ c (FHBin lk la ll lr :: FHMap f l) r =
     let (l2, TypeNothing :: TypeMaybe f ('Nothing :: Maybe v), r2) = splitLookup lk r
         !l1l2 = unionC c ll l2
         !r1r2 = unionC c lr r2
@@ -1262,8 +1261,8 @@ instance ( SplitLookupS lk r l2 ('Just a :: Maybe v) r2
          , UnionC c lr r2 r1r2
          , Link lk za l1l2 r1r2 z
          )
-       => UnionC' '( 'False, 'False, 'Just a :: Maybe v) c ('B lk (la :: v) ll lr) r z where
-  unionC' _ c (FHBin lk la ll lr :: FHMap f l) r =
+       => UnionC' 'False 'False ('Just a :: Maybe v) c ('B lk (la :: v) ll lr) r z where
+  unionC' _ _ _ c (FHBin lk la ll lr :: FHMap f l) r =
     let (l2, TypeJust a :: TypeMaybe f ('Just a :: Maybe v), r2) = splitLookup lk r
         !l1l2 = unionC c ll l2
         !r1r2 = unionC c lr r2

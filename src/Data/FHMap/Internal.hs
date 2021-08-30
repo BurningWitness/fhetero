@@ -28,10 +28,10 @@ import           Data.Type.Eq
 import           Data.Type.Length
 import           Data.Type.Map
 import           Data.Type.Materialize
+import           Data.Type.Maybe
 import           Data.Type.Ord
 
 import           Control.Applicative (liftA3)
-import           Control.Monad (guard)
 import           Data.Kind
 import           Data.Ord
 import           Data.Proxy
@@ -169,73 +169,70 @@ member (_ :: Proxy k) (_ :: FHMap f as) =
 
 
 
+class Lookup (k :: s) (as :: M s) (a :: v) | k v as -> a where
+  -- | Lookup the value at a key in the map.
+  --
+  --   The function will return a type error if the key isn't in the map.
+  --
+  --   NOTE: failure to find a key yields @f (TypeError ...)@ instead of
+  --         @(TypeError ...)@, leading to a tiny side case in GHCi where requesting
+  --         @'lookup' ('Proxy' :: Proxy "this") 'empty'@ errors out with 'undefined'.
+  --         The type error arises properly when @f@ is known, or the result is part of
+  --         an expression, so it cannot manifest outside GHCi.
+  lookup :: Proxy k -> FHMap f as -> f a
+
+instance ( LookupMay k as mayA
+         , err ~ TypeError ( 'Text "Key "
+                       ':<>: 'ShowType k
+                       ':<>: 'Text " is not in the map"
+                           )
+         , FromTypeMaybe err mayA a
+         )
+        => Lookup k as a where
+  lookup k (m :: FHMap f as) = fromTypeMaybe (undefined :: f err) $ lookupMay k m
+
+
+
 -- | Synonym to 'lookup', arguments are flipped.
-(!) :: Lookup k as exists a => FHMap f as -> Proxy k -> f a
+(!) :: Lookup k as a => FHMap f as -> Proxy k -> f a
 (!) = flip lookup
 
 
 
-type LookupMay = LookupI 'EitherWay
+class LookupMay (k :: s) (as :: M s) (a :: Maybe v) | k v as -> a where
+  -- | Lookup the value at a key in the map.
+  --
+  --   The function will return the corresponding value as @('TypeJust' value)@,
+  --   or @'TypeNothing'@ if the key isn't in the map.
+  lookupMay :: Proxy k -> FHMap f as -> TypeMaybe f a
 
--- | Lookup the value at a key in the map.
---
---   The function will return the corresponding value as @('Just' value)@,
---   or @'Nothing'@ if the key isn't in the map.
---
---   NOTE: Since in case of 'Nothing' __something__ still has to be returned on the type level
---         and kinds do not have a 'Void' type, this function will not work if @a@ is a kind.
-lookupMay :: LookupMay k as e a => Proxy k -> FHMap f as -> Maybe (f a)
-lookupMay k m =
-  let (p, v) = lookupI (Proxy :: Proxy 'EitherWay) k m
-  in v <$ guard (materialize p)
+instance LookupMay k 'T 'Nothing where
+  lookupMay _ FHTip = TypeNothing
 
+instance ( flag ~ Compare q k
+         , LookupMay' flag q ('B k b l r) a
+         )
+      => LookupMay q ('B k b l r) a where
+  lookupMay = lookupMay' (Proxy :: Proxy flag)
+
+
+
+class LookupMay' (flag :: Ordering) (k :: s) (as :: M s) (a :: Maybe v) | flag k v as -> a where
+  lookupMay' :: Proxy flag -> Proxy k -> FHMap f as -> TypeMaybe f a
+
+instance LookupMay' 'EQ k ('B k a ls ms) ('Just a) where
+  lookupMay' _ _ (FHBin _ a _ _) = TypeJust a
+
+instance LookupMay q l a => LookupMay' 'LT q ('B k b l r) a where
+  lookupMay' _ q (FHBin _ _ l _) = lookupMay q l
+
+instance LookupMay q r a => LookupMay' 'GT q ('B k b l r) a where
+  lookupMay' _ q (FHBin _ _ _ r) = lookupMay q r
 
 
 -- | Synonym to 'lookupMay', arguments are flipped.
-(!?) :: LookupMay k as exists a => FHMap f as -> Proxy k -> Maybe (f a)
+(!?) :: LookupMay k as a => FHMap f as -> Proxy k -> TypeMaybe f a
 (!?) = flip lookupMay
-
-
-
-type Lookup = LookupI 'IfExists
-
--- | Lookup the value at a key in the map.
---   
---   The function will return a type error if the key isn't in the map.
-lookup :: Lookup k as exists a => Proxy k -> FHMap f as -> f a
-lookup k = snd . lookupI (Proxy :: Proxy 'IfExists) k
-
-
-
-class Materialize Bool e
-   => LookupI (i :: IfExists) (k :: s) (as :: M s) (e :: Bool) a
-                | i k as -> e a where
-  lookupI :: Proxy i -> Proxy k -> FHMap f as -> (Proxy e, f a)
-
-instance LookupI i k 'T 'False Void where
-  lookupI _ _ FHTip = (Proxy :: Proxy 'False, undefined) -- undefined is @t Void@
-
-instance ( flag ~ Compare q k
-         , Materialize Bool e
-         , Exists i e "Key " q " is not in the map" 
-         , LookupI' flag i q ('B k b l r) e a
-         )
-      => LookupI i q ('B k b l r) e a where
-  lookupI = lookupI' (Proxy :: Proxy flag)
-
-
-
-class LookupI' (flag :: Ordering) i (k :: s) (as :: M s) e a | flag i k as -> e a where
-  lookupI' :: Proxy flag -> Proxy i -> Proxy k -> FHMap f as -> (Proxy e, f a)
-
-instance LookupI' 'EQ i k ('B k a ls ms) 'True a where
-  lookupI' _ _ _ (FHBin _ a _ _) = (Proxy :: Proxy 'True, a)
-
-instance LookupI i q l e a => LookupI' 'LT i q ('B k b l r) e a where
-  lookupI' _ i q (FHBin _ _ l _) = lookupI i q l
-
-instance LookupI i q r e a => LookupI' 'GT i q ('B k b l r) e a where
-  lookupI' _ i q (FHBin _ _ _ r) = lookupI i q r
 
 
 
@@ -739,39 +736,46 @@ instance ( InsertC c kx x r r'
       => InsertC' 'GT c kx x ('B k a l r) bs where
   insertC' _ c kx x (FHBin k a l r) = balanceR k a l (insertC c kx x r)
 
-instance InsertC' 'EQ 'Clobber k x ('B k a l r) ('B k x l r) where
-  insertC' _ _ k x (FHBin _ _ l r) = FHBin k x l r
+instance ApplyClobber c kx a x z
+      => InsertC' 'EQ c kx x ('B k a l r) ('B k z l r) where
+  insertC' _ c kx x (FHBin k a l r) = FHBin k (applyClobber c kx a x) l r
 
-instance ( flag ~ (x == a)
-         , InsertCId flag k x ('B k a l r)
-         )
-        => InsertC' 'EQ 'IfIdentical k x ('B k a l r) ('B k a l r) where
-  insertC' _ _ = insertCId (Proxy :: Proxy flag)
+
+
+class ApplyClobber (c :: Clobber) (k :: s) (a :: v) (b :: v) (z :: v) | c k a b -> z where
+  applyClobber :: Proxy c -> Proxy k -> f a -> f b -> f z
+
+instance ApplyClobber 'Clobber k a b b where
+  applyClobber _ _ _ b = b
 
 instance TypeError ( 'Text "Key "
                ':<>: 'ShowType k
                ':<>: 'Text " already present in the map"
                    )
-      => InsertC' 'EQ 'NoClobber k x ('B k a l r) 'T where
-  insertC' = undefined
+      => ApplyClobber 'NoClobber k a b a where
+  applyClobber _ _ _ _ = undefined
 
+instance ( flag ~ (a == b)
+         , ApplyClobber' flag k a b z
+         )
+        => ApplyClobber 'IfIdentical k a b z where
+  applyClobber _ = applyClobber' (Proxy :: Proxy flag)
 
+class ApplyClobber' (flag :: Bool) (k :: s) (a :: v) (b :: v) (z :: v) | flag k a b -> z where
+  applyClobber' :: Proxy flag -> Proxy k -> f a -> f b -> f z
 
-class InsertCId (isEq :: Bool) (k :: s) a (as :: M s) where
-  insertCId :: Proxy isEq -> Proxy k -> f a -> FHMap f as -> FHMap f as
-
-instance InsertCId 'True k x ('B k x l r) where
-  insertCId _ k x (FHBin _ _ l r) = FHBin k x l r
+instance ApplyClobber' 'True k a b b where
+  applyClobber' _ _ _ b = b
 
 instance TypeError ( 'Text "Expected type "
-               ':<>: 'ShowType x
+               ':<>: 'ShowType a
                ':<>: 'Text " on identical insert of key "
                ':<>: 'ShowType k
                ':<>: 'Text ", but found "
-               ':<>: 'ShowType a
+               ':<>: 'ShowType b
                    )
-      => InsertCId 'False k x ('B k a l r) where
-  insertCId = undefined
+      => ApplyClobber' 'False k a b a where
+  applyClobber' _ _ _ _ = undefined
 
 
 
@@ -1099,46 +1103,89 @@ data StrictTriple a b c = StrictTriple !a !b !c
 
 
 
-splitMember :: SplitMemberS k m l mv r => Proxy k -> FHMap f m -> (FHMap f l, Proxy mv, FHMap f r)
+splitMember :: SplitMemberS k m l b r => Proxy k -> FHMap f m -> (FHMap f l, Proxy b, FHMap f r)
 splitMember k m =
   let StrictTriple l mv r = splitMemberS k m
   in (l, mv, r)
 
-class SplitMemberS (k :: s) (m :: M s) (l :: M s) mv (r :: M s) | k m -> l mv r where
-  splitMemberS :: Proxy k -> FHMap f m -> StrictTriple (FHMap f l) (Proxy mv) (FHMap f r)
+class SplitMemberS (k :: s) (m :: M s) (l :: M s) (b :: Bool) (r :: M s) | k m -> l b r where
+  splitMemberS :: Proxy k -> FHMap f m -> StrictTriple (FHMap f l) (Proxy b) (FHMap f r)
 
 instance SplitMemberS k 'T 'T 'False 'T where
-  splitMemberS _ FHTip = StrictTriple FHTip (Proxy :: Proxy 'False) FHTip
+  splitMemberS _ FHTip = StrictTriple FHTip Proxy FHTip
 
 instance ( flag ~ Compare q k
-         , SplitMemberS' flag q ('B k a l r) l' mv' r'
+         , SplitMemberS' flag q ('B k a l r) l' b r'
          )
-        => SplitMemberS q ('B k a l r) l' mv' r' where
+        => SplitMemberS q ('B k a l r) l' b r' where
   splitMemberS = splitMemberS' (Proxy :: Proxy flag)
 
-class SplitMemberS' o (k :: s) (m :: M s) (l :: M s) mv (r :: M s) | o k m -> l mv r where
-  splitMemberS' :: Proxy o -> Proxy k -> FHMap f m -> StrictTriple (FHMap f l) (Proxy mv) (FHMap f r)
+class SplitMemberS' o (k :: s) (m :: M s) (l :: M s) (b :: Bool) (r :: M s) | o k m -> l b r where
+  splitMemberS' :: Proxy o -> Proxy k -> FHMap f m -> StrictTriple (FHMap f l) (Proxy b) (FHMap f r)
 
-instance ( SplitMemberS q l lt mv gt
+instance ( SplitMemberS q l lt b gt
          , Link k a gt r r'
          )
-        => SplitMemberS' 'LT q ('B k a l r) lt mv r' where
+        => SplitMemberS' 'LT q ('B k a l r) lt b r' where
   splitMemberS' _ q (FHBin k a l r) =
     let StrictTriple lt z gt = splitMemberS q l
         !gt' = link k a gt r
     in StrictTriple lt z gt'
 
-instance ( SplitMemberS q r lt mv gt
+instance ( SplitMemberS q r lt b gt
          , Link k a l lt l'
          )
-        => SplitMemberS' 'GT q ('B k a l r) l' mv gt where
+        => SplitMemberS' 'GT q ('B k a l r) l' b gt where
   splitMemberS' _ q (FHBin k a l r) =
     let StrictTriple lt z gt = splitMemberS q r
         !lt' = link k a l lt
     in StrictTriple lt' z gt
 
 instance SplitMemberS' 'EQ k ('B k a l r) l 'True r where
-  splitMemberS' _ _ (FHBin _ _ l r) = StrictTriple l (Proxy :: Proxy 'True) r
+  splitMemberS' _ _ (FHBin _ _ l r) = StrictTriple l Proxy r
+
+
+
+splitLookup :: SplitLookupS k m l a r => Proxy k -> FHMap f m -> (FHMap f l, TypeMaybe f a, FHMap f r)
+splitLookup k m =
+  let StrictTriple l mv r = splitLookupS k m
+  in (l, mv, r)
+
+class SplitLookupS (k :: s) (m :: M s) (l :: M s) (a :: Maybe v) (r :: M s) | k m v -> l a r where
+  splitLookupS :: Proxy k -> FHMap f m -> StrictTriple (FHMap f l) (TypeMaybe f a) (FHMap f r)
+
+instance SplitLookupS k 'T 'T 'Nothing 'T where
+  splitLookupS _ FHTip = StrictTriple FHTip TypeNothing FHTip
+
+instance ( flag ~ Compare q k
+         , SplitLookupS' flag q ('B k a l r) l' a' r'
+         )
+        => SplitLookupS q ('B k a l r) l' a' r' where
+  splitLookupS = splitLookupS' (Proxy :: Proxy flag)
+
+class SplitLookupS' o (k :: s) (m :: M s) (l :: M s) (a :: Maybe v) (r :: M s) | o k m v -> l a r where
+  splitLookupS' :: Proxy o -> Proxy k -> FHMap f m -> StrictTriple (FHMap f l) (TypeMaybe f a) (FHMap f r)
+
+instance ( SplitLookupS q l lt a' gt
+         , Link k a gt r r'
+         )
+        => SplitLookupS' 'LT q ('B k a l r) lt a' r' where
+  splitLookupS' _ q (FHBin k a l r) =
+    let StrictTriple lt z gt = splitLookupS q l
+        !gt' = link k a gt r
+    in StrictTriple lt z gt'
+
+instance ( SplitLookupS q r lt a' gt
+         , Link k a l lt l'
+         )
+        => SplitLookupS' 'GT q ('B k a l r) l' a' gt where
+  splitLookupS' _ q (FHBin k a l r) =
+    let StrictTriple lt z gt = splitLookupS q r
+        !lt' = link k a l lt
+    in StrictTriple lt' z gt
+
+instance SplitLookupS' 'EQ k ('B k a l r) l ('Just a) r where
+  splitLookupS' _ _ (FHBin _ a l r) = StrictTriple l (TypeJust a) r
 
 
 
@@ -1176,36 +1223,51 @@ class UnionC (c :: Clobber) (l :: M s) (r :: M s) (z :: M s) | c l r -> z where
 instance UnionC c l 'T l where
   unionC _ l FHTip = l
 
-instance UnionC c 'T r r where
+instance UnionC c 'T ('B rk ra rl rr) ('B rk ra rl rr) where
   unionC _ FHTip r = r
 
 instance ( flag1 ~ (ll == 'T && lr == 'T)
          , flag2 ~ (rl == 'T && rr == 'T)
-         , UnionC' flag1 flag2 c ('B lk la ll lr) ('B rk ra rl rr) z 
+         , SplitLookupS lk ('B rk ra rl rr) l2 flag3 r2
+         , flag ~ '(flag1, flag2, flag3 :: Maybe v)
+         , UnionC' flag c ('B lk la ll lr) ('B rk ra rl rr) z 
          )
-        => UnionC c ('B lk la ll lr) ('B rk ra rl rr) z where
-  unionC = unionC' (Proxy :: Proxy flag1) (Proxy :: Proxy flag2)
+        => UnionC c ('B lk (la :: v) ll lr) ('B rk ra rl rr) z where
+  unionC = unionC' (Proxy :: Proxy flag)
 
-class UnionC' o1 o2 (c :: Clobber) l r z | o1 o2 c l r -> z where
-  unionC' :: Proxy o1 -> Proxy o2 -> Proxy c -> FHMap f l -> FHMap f r -> FHMap f z
+class UnionC' (flag :: (Bool, Bool, Maybe v)) (c :: Clobber) l r z | v c l r -> z where
+  unionC' :: Proxy flag -> Proxy c -> FHMap f l -> FHMap f r -> FHMap f z
 
-instance InsertC c rk ra l z => UnionC' 'False 'True c l ('B rk ra 'T 'T) z where
-  unionC' _ _ c l (FHBin rk ra FHTip FHTip) = insertC c rk ra l
+instance InsertC c rk ra l z => UnionC' '( 'False, 'True, o3) c l ('B rk ra 'T 'T) z where
+  unionC' _ c l (FHBin rk ra FHTip FHTip) = insertC c rk ra l
 
-instance InsertC c lk la r z => UnionC' 'True o2 c ('B lk la 'T 'T) r z where
-  unionC' _ _ c (FHBin lk la FHTip FHTip) = insertC c lk la
+instance InsertC c lk la r z => UnionC' '( 'True , o2   , o3) c ('B lk la 'T 'T) r z where
+  unionC' _ c (FHBin lk la FHTip FHTip) = insertC c lk la
 
-instance ( SplitS lk r l2 r2
+instance ( SplitLookupS lk r l2 ('Nothing :: Maybe v) r2
          , UnionC c ll l2 l1l2
          , UnionC c lr r2 r1r2
          , Link lk la l1l2 r1r2 z
          )
-       => UnionC' 'False 'False c ('B lk la ll lr) r z where
-  unionC' _ _ c (FHBin lk la ll lr) r =
-    let (l2, r2) = split lk r
+       => UnionC' '( 'False, 'False, 'Nothing :: Maybe v) c ('B lk (la :: v) ll lr) r z where
+  unionC' _ c (FHBin lk la ll lr :: FHMap f l) r =
+    let (l2, TypeNothing :: TypeMaybe f ('Nothing :: Maybe v), r2) = splitLookup lk r
         !l1l2 = unionC c ll l2
         !r1r2 = unionC c lr r2
     in link lk la l1l2 r1r2
+
+instance ( SplitLookupS lk r l2 ('Just a :: Maybe v) r2
+         , ApplyClobber c lk a la za
+         , UnionC c ll l2 l1l2
+         , UnionC c lr r2 r1r2
+         , Link lk za l1l2 r1r2 z
+         )
+       => UnionC' '( 'False, 'False, 'Just a :: Maybe v) c ('B lk (la :: v) ll lr) r z where
+  unionC' _ c (FHBin lk la ll lr :: FHMap f l) r =
+    let (l2, TypeJust a :: TypeMaybe f ('Just a :: Maybe v), r2) = splitLookup lk r
+        !l1l2 = unionC c ll l2
+        !r1r2 = unionC c lr r2
+    in link lk (applyClobber c lk a la) l1l2 r1r2
 
 
 

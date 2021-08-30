@@ -141,7 +141,9 @@ module Data.FHMap
   , toDescList
     -- * Re-exports
   , module Data.Type.Map
+  , TypeMaybe (..)
   ) where
 
 import           Data.FHMap.Internal
 import           Data.Type.Map
+import           Data.Type.Maybe

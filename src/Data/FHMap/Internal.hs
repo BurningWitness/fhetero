@@ -1249,7 +1249,7 @@ instance ( SplitLookupS lk r l2 ('Nothing :: Maybe v) r2
          , Link lk la l1l2 r1r2 z
          )
        => UnionC' 'False 'False ('Nothing :: Maybe v) c ('B lk (la :: v) ll lr) r z where
-  unionC' _ _ _ c (FHBin lk la ll lr :: FHMap f l) r =
+  unionC' _ _ _ c (FHBin lk la ll lr :: FHMap f ('B lk la ll lr)) r =
     let (l2, TypeNothing :: TypeMaybe f ('Nothing :: Maybe v), r2) = splitLookup lk r
         !l1l2 = unionC c ll l2
         !r1r2 = unionC c lr r2
@@ -1262,7 +1262,7 @@ instance ( SplitLookupS lk r l2 ('Just a :: Maybe v) r2
          , Link lk za l1l2 r1r2 z
          )
        => UnionC' 'False 'False ('Just a :: Maybe v) c ('B lk (la :: v) ll lr) r z where
-  unionC' _ _ _ c (FHBin lk la ll lr :: FHMap f l) r =
+  unionC' _ _ _ c (FHBin lk la ll lr :: FHMap f ('B lk la ll lr)) r =
     let (l2, TypeJust a :: TypeMaybe f ('Just a :: Maybe v), r2) = splitLookup lk r
         !l1l2 = unionC c ll l2
         !r1r2 = unionC c lr r2

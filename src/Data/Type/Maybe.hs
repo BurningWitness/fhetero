@@ -68,7 +68,7 @@ instance (Elevate Eq f a, Elevate Ord f a) => Ord (TypeMaybe f a) where
 class FromTypeMaybe (a :: v) (b :: Maybe v) (c :: v) | a b -> c where
   fromTypeMaybe :: f a -> TypeMaybe f b -> f c
 
-instance FromTypeMaybe b ('Just b) b where
+instance FromTypeMaybe a ('Just b) b where
   fromTypeMaybe _ (TypeJust a) = a
 
 instance FromTypeMaybe a 'Nothing a where

@@ -1,5 +1,5 @@
 name:                fhetero
-version:             0.1.9.0
+version:             0.1.9.1
 github:              burningwitness/fhetero
 license:             BSD3
 license-file:        LICENSE
@@ -17,6 +17,7 @@ description:         Please see the README on GitHub at <https://github.com/burn
 
 dependencies:
 - base >= 4.12 && < 5
+- deepseq
 
 ghc-options:
 - -Wall
@@ -26,3 +27,15 @@ library:
 
 default-extensions:
 - NoImplicitPrelude
+
+tests:
+  examples:
+    main:        Examples.hs
+    source-dirs: test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -O2
+    dependencies:
+    - fhetero

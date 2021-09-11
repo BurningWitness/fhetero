@@ -1,4 +1,5 @@
-{-# LANGUAGE ConstraintKinds
+{-# LANGUAGE BangPatterns
+           , ConstraintKinds
            , DataKinds
            , EmptyCase
            , FlexibleContexts
@@ -22,6 +23,7 @@ import           Data.FHFunctor
 import           Data.FHTraversable
 import           Data.Type.Map
 
+import           Control.DeepSeq
 import           Data.Proxy
 import           Data.Type.Eq
 import           GHC.TypeLits
@@ -65,6 +67,19 @@ instance (Show (f a), Show (OneOf f l), Show (OneOf f r)) => Show (OneOf f ('B '
   showsPrec d (SkipR a) = showParen (d > 10) $ showString "SkipR " . showsPrec 11 a
 
   showsPrec d (Item v) = showParen (d > 10) $ showString "Item " . showsPrec 11 v
+
+instance ( NFData (OneOf f l)
+         , NFData (f a)
+         , NFData (OneOf f r)
+         )
+        => NFData (OneOf f ('B k a l r)) where
+  rnf (SkipL l) = rnf l
+  rnf (SkipR r) = rnf r
+  rnf (Item a) = rnf a
+
+instance NFData (OneOf f 'T) where
+  rnf !a = case a of
+
 
 
 instance FHFunctor OneOf p 'T where

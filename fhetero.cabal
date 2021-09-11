@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2f011ca011b48070c4d7eb6df4745615bf77cc3983f0911a08deb8d74c0b91e4
+-- hash: 7568ec58561f841277a0e38e4f3926ebc97ccda229ccd369c5f08a8da3d82eb8
 
 name:           fhetero
-version:        0.1.9.0
+version:        0.1.9.1
 synopsis:       Heterogenous containers wrapped into functors
 description:    Please see the README on GitHub at <https://github.com/burningwitness/fhetero#readme>
 category:       Data
@@ -58,4 +58,21 @@ library
   ghc-options: -Wall
   build-depends:
       base >=4.12 && <5
+    , deepseq
+  default-language: Haskell2010
+
+test-suite examples
+  type: exitcode-stdio-1.0
+  main-is: Examples.hs
+  other-modules:
+      Examples.FHDecision
+      Paths_fhetero
+  hs-source-dirs:
+      test
+  default-extensions: NoImplicitPrelude
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -O2
+  build-depends:
+      base >=4.12 && <5
+    , deepseq
+    , fhetero
   default-language: Haskell2010

@@ -21,6 +21,7 @@ import           Data.FHFunctor
 import           Data.FHTraversable
 import           Data.Type.Deep
 
+import           Control.DeepSeq
 import           Data.Proxy
 import           Prelude hiding (map, foldl, foldMap, foldr, traverse, zip, zip3)
 
@@ -39,6 +40,12 @@ instance Show (f a) => Show (FHDeep f ('S a)) where
 instance Show (FHList (FHDeep f) as) => Show (FHDeep f ('D as)) where
   showsPrec n (FHDeep as) =
     showParen (n > 10) $ showString "Deep " . showsPrec 11 as
+
+instance NFData (f a) => NFData (FHDeep f ('S a)) where
+  rnf (FHShallow a) = rnf a
+
+instance NFData (FHList (FHDeep f) as) => NFData (FHDeep f ('D as)) where
+  rnf (FHDeep as) = rnf as
 
 
 

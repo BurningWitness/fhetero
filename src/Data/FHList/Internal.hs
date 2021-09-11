@@ -26,8 +26,9 @@ import           Data.Type.Length
 import           Data.Type.Materialize
 import           Data.Type.Ord
 
-import           Data.Type.Bool
+import           Control.DeepSeq
 import           Data.Proxy
+import           Data.Type.Bool
 import           GHC.Generics
 import           GHC.TypeLits as Lits
 import           Prelude hiding ( map, concat, foldr, foldl, foldMap, replicate
@@ -83,6 +84,10 @@ instance GenericH f as => GenericH f (a ': as) where
 
   toH (M1 (M1 (K1 a) :*: as)) = a :&> toH as
 
+instance (NFData (f a), NFData (FHList f as)) => NFData (FHList f (a ': as)) where
+  rnf (a :&> as) = rnf (a, as)
+
+instance NFData (FHList f '[])
 
 
 

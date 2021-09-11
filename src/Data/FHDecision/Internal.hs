@@ -29,6 +29,7 @@ import qualified Data.FHList as FHList
 import           Data.FHMap (M (..))
 import           Data.OneOf
 
+import           Control.DeepSeq
 import           Control.Monad hiding ((>>))
 import           Data.Coerce
 import           Data.Proxy
@@ -74,6 +75,23 @@ instance (Show (FHDecision f a), Show (FHDecision f b))
         . showsPrec 11 tru
         . showChar ' '
         . showsPrec 11 fal
+
+
+instance NFData (f a) => NFData (FHSingle f ('Action a)) where
+  rnf (FHAction a) = rnf a
+
+instance NFData (FHDecision f as) => NFData (FHSingle f ('DChain as)) where
+  rnf (FHDataChain as) = rnf as
+
+instance NFData (OneOf (FHDecision f) as) => NFData (FHSingle f ('DChoice as)) where
+  rnf (FHDataChoice as) = rnf as
+
+instance NFData (FHDecision f tru) => NFData (FHSingle f ('TChoice 'True tru fal)) where
+  rnf (FHTypeChoice Proxy tru _) = rnf tru
+
+instance NFData (FHDecision f fal) => NFData (FHSingle f ('TChoice 'False tru fal)) where
+  rnf (FHTypeChoice Proxy _ fal) = rnf fal
+
 
 
 instance p a => FHFunctor FHSingle p ('Action a) where
@@ -143,7 +161,8 @@ instance FHFoldable FHDecision p b
 --                , DataKinds
 --                , RebindableSyntax \#-}
 --
---     {-\# OPTIONS_GHC -Wno-unused-do-bind \#-} -- For if you have -Wall on
+--     {-\# OPTIONS_GHC -Wno-unused-do-bind \#-}               -- For if you have -Wall on
+--     {-\# OPTIONS_GHC -fno-warn-partial-type-signatures \#-} -- Silences type inference warnings
 --
 --     import           Data.FHDecision
 --
@@ -171,7 +190,6 @@ data FHDecision (f :: k -> *) (as :: Dec) where
   FHTypeChain :: FHList (FHDecision f) as -> FHDecision f ('TChain as)
 
 
-
 instance Show (FHSingle f a) => Show (FHDecision f ('Single a)) where
   showsPrec d (FHSingle a) = showParen (d > 10) $ showString "FHSingle " . showsPrec 11 a
 
@@ -179,6 +197,14 @@ instance Show (FHList (FHDecision f) as) => Show (FHDecision f ('TChain as)) whe
   showsPrec d (FHTypeChain a) = showParen (d > 10) $
                                     showString "FHTypeChain "
                                   . showsPrec 11 a
+
+
+instance NFData (FHSingle f as) => NFData (FHDecision f ('Single as)) where
+  rnf (FHSingle as) = rnf as
+
+instance NFData (FHList (FHDecision f) as) => NFData (FHDecision f ('TChain as)) where
+  rnf (FHTypeChain as) = rnf as
+
 
 
 instance FHFunctor FHSingle p a
@@ -222,25 +248,53 @@ instance FHList.Concat as bs cs
 
 
 
-class IfThenElse cond a b c | cond a b -> c, cond a c -> b, cond b c -> a where
+class IfThenElse cond a b c | cond a b -> c where
   -- | A variant of 'if' that wraps both sides into an 'FHDecision'.
   --
   --   Allows for @'Proxy' 'Bool'@s as conditionals. In these proxied cases branches
   --   that remain unused are removed from the 'Collect' type list too.
+  --
+  --   These 'if's do require more type info than usual ones, the compiler
+  --   needs to know what type the condition is and whether any of the branches
+  --   are 'FHDecision's.
   ifThenElse :: cond -> a -> b -> c
 
-instance f ~ g
-      => IfThenElse (Proxy cond) (FHDecision f a) (FHDecision g b)
-                 (FHDecision g ('Single ('TChoice cond a b))) where
-  ifThenElse cond tru fal = FHSingle $ FHTypeChoice cond tru fal
+type family IsDecision (a :: *) (b :: *) :: Bool where
+  IsDecision (FHDecision _ _) _ = 'True
+  IsDecision _ (FHDecision _ _) = 'True
+  IsDecision _                _ = 'False
+
+instance ( flagA ~ IsDecision a b
+         , IfThenElse' flagA cond a b c
+         )
+        => IfThenElse cond a b c where
+  ifThenElse = ifThenElse' (Proxy :: Proxy flagA)
+
+class IfThenElse' flagA cond a b c | flagA cond a b -> c where
+  ifThenElse' :: Proxy flagA -> cond -> a -> b -> c
 
 instance f ~ g
-      => IfThenElse Bool (FHDecision f a) (FHDecision g b)
-                 (FHDecision g ('Single ('DChoice ('B '() a ('B '() b 'T 'T) 'T)))) where
-  ifThenElse cond tru fal =
+      => IfThenElse' 'True (Proxy cond) (FHDecision f a) (FHDecision g b)
+                                        (FHDecision g ('Single ('TChoice cond a b))) where
+  ifThenElse' _ cond tru fal = FHSingle $ FHTypeChoice cond tru fal
+
+instance a ~ b => IfThenElse' 'False (Proxy 'True) a b b where
+  ifThenElse' _ _ a _ = a
+
+instance a ~ b => IfThenElse' 'False (Proxy 'False) a b b where
+  ifThenElse' _ _ _ a = a
+
+instance f ~ g
+      => IfThenElse' 'True Bool (FHDecision f a) (FHDecision g b)
+                       (FHDecision g ('Single ('DChoice ('B '() a ('B '() b 'T 'T) 'T)))) where
+  ifThenElse' _ cond tru fal =
     FHSingle . FHDataChoice $ if cond
                                 then (Proxy :: Proxy 0) >.< tru
                                 else (Proxy :: Proxy 1) >!< fal
+
+instance a ~ b => IfThenElse' 'False Bool a b b where
+  ifThenElse' _ cond a b = if cond then a else b
+
 
 
 

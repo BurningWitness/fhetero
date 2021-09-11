@@ -32,6 +32,7 @@ import           Data.Type.Maybe
 import           Data.Type.Ord
 
 import           Control.Applicative (liftA3)
+import           Control.DeepSeq
 import           Data.Kind
 import           Data.Ord
 import           Data.Proxy
@@ -110,6 +111,15 @@ instance (GenericH f l, GenericH f r) => GenericH (f :: v -> *) ('B k (a :: v) l
   fromH (FHBin k a l r) = M1 $ M1 (K1 k) :*: M1 (K1 a) :*: fromH l :*: fromH r
 
   toH (M1 (M1 (K1 k) :*: M1 (K1 a) :*: l :*: r)) = FHBin k a (toH l) (toH r)
+
+instance ( NFData (FHMap f l)
+         , NFData (f a)
+         , NFData (FHMap f r)
+         )
+        => NFData (FHMap f ('B k a l r)) where
+  rnf (FHBin _ a l r) = rnf (l, a , r)
+
+instance NFData (FHMap f 'T)
 
 
 

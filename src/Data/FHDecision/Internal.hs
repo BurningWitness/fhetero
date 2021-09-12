@@ -35,6 +35,8 @@ import           Data.Coerce
 import           Data.Proxy
 import           GHC.TypeLits
 import           Prelude hiding ((>>))
+import qualified Prelude as Pre
+
 
 
 
@@ -228,23 +230,35 @@ instance FHFoldable FHList (FHFoldable FHDecision p) as
 
 
 
-class ReboundSeq a b c | a b -> c where
-  -- | Rebind of '(Pre.>>)' that chains operations in 'FHDecision' trees.
-  (>>) :: f ~ g => FHDecision f a -> FHDecision g b -> FHDecision g ('TChain c)
+class ReboundSeq m a b c | m a b -> c where
+  -- | Rebind of '(Pre.>>)' that can also chain operations in 'FHDecision' trees.
+  --
+  --   Similar type problems to 'ifThenElse'. The compiler needs to know whether
+  --   @m a@ or @m b@ is an 'FHDecision' to choose an instance.
+  (>>) :: m a -> m b -> m c
 
-instance ReboundSeq ('Single a) ('Single b) '[ 'Single a, 'Single b ] where
-  a >> b = FHTypeChain $ coerce a :&>: coerce b
+instance (IsDecision (m a) (m b) ~ flag, ReboundSeq' flag m a b c) => ReboundSeq m a b c where
+  (>>) = (>>?) (Proxy :: Proxy flag)
 
-instance ReboundSeq ('Single a) ('TChain bs) ('Single a ': bs) where
-  a >> FHTypeChain b = FHTypeChain $ coerce a :&> b
+class ReboundSeq' flag m a b c | flag m a b -> c where
+  (>>?) :: Proxy flag -> m a -> m b -> m c
+
+instance ReboundSeq' 'True (FHDecision f) ('Single a) ('Single b) ('TChain '[ 'Single a, 'Single b ]) where
+  (>>?) _ a b = FHTypeChain $ coerce a :&>: coerce b
+
+instance ReboundSeq' 'True (FHDecision f) ('Single a) ('TChain bs) ('TChain ('Single a ': bs)) where
+  (>>?) _ a (FHTypeChain b) = FHTypeChain $ coerce a :&> b
 
 instance FHList.Concat as '[ 'Single b ] cs
-      => ReboundSeq ('TChain as) ('Single b) cs where
-  FHTypeChain a >> b = FHTypeChain $ coerce a FHList.++ FHList.singleton b
+      => ReboundSeq' 'True (FHDecision f) ('TChain as) ('Single b) ('TChain cs) where
+  (>>?) _ (FHTypeChain a) b = FHTypeChain $ coerce a FHList.++ FHList.singleton b
 
 instance FHList.Concat as bs cs
-      => ReboundSeq ('TChain as) ('TChain bs) cs where
-  FHTypeChain a >> FHTypeChain b = FHTypeChain $ coerce a FHList.++ coerce b
+      => ReboundSeq' 'True (FHDecision f) ('TChain as) ('TChain bs) ('TChain cs) where
+  (>>?) _ (FHTypeChain a) (FHTypeChain b) = FHTypeChain $ coerce a FHList.++ coerce b
+
+instance Monad m => ReboundSeq' 'False (m :: * -> *) a b b where
+  (>>?) _ = (Pre.>>)
 
 
 
@@ -264,11 +278,11 @@ type family IsDecision (a :: *) (b :: *) :: Bool where
   IsDecision _ (FHDecision _ _) = 'True
   IsDecision _                _ = 'False
 
-instance ( flagA ~ IsDecision a b
-         , IfThenElse' flagA cond a b c
+instance ( flag ~ IsDecision a b
+         , IfThenElse' flag cond a b c
          )
         => IfThenElse cond a b c where
-  ifThenElse = ifThenElse' (Proxy :: Proxy flagA)
+  ifThenElse = ifThenElse' (Proxy :: Proxy flag)
 
 class IfThenElse' flagA cond a b c | flagA cond a b -> c where
   ifThenElse' :: Proxy flagA -> cond -> a -> b -> c

@@ -13,6 +13,8 @@
 module Data.Type.Maybe
   ( TypeMaybe (..)
   , FromTypeMaybe (..)
+  , MapMaybe
+  , IsJust
   ) where
 
 import           Data.Proxy
@@ -54,7 +56,7 @@ instance Elevate p f 'Nothing where
 
 instance Elevate Show f a => Show (TypeMaybe f a) where
   showsPrec = elevate (Proxy :: Proxy Show)
-                (\d a -> showParen (d > 10) $ showString "TypeJust " . shows a)
+                (\d a -> showParen (d > 10) $ showString "TypeJust " . showsPrec 11 a)
                 (showString "TypeNothing")
 
 instance Elevate Eq f a => Eq (TypeMaybe f a) where
@@ -73,3 +75,19 @@ instance FromTypeMaybe a ('Just b) b where
 
 instance FromTypeMaybe a 'Nothing a where
   fromTypeMaybe a _ = a
+
+
+
+class MapMaybe (f :: x -> y) (a :: Maybe x) (b :: Maybe y) | f a -> b
+
+instance MapMaybe f 'Nothing 'Nothing
+
+instance MapMaybe f ('Just a) ('Just (f a))
+
+
+
+class IsJust (a :: Maybe x) (b :: Bool) | a -> b
+
+instance IsJust 'Nothing 'False
+
+instance IsJust ('Just a) 'True

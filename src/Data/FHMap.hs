@@ -38,7 +38,8 @@
 
 module Data.FHMap
   ( -- * Map type
-    FHMap (..)
+    M (..)
+  , FHMap (..)
     -- * Construction
   , empty
   , singleton
@@ -60,6 +61,11 @@ module Data.FHMap
   , insertUnique
   , InsertId
   , insertId
+    -- * Replacing by 'Path'
+  , Swap
+  , swap
+  , SwapId
+  , swapId
     -- * Deletion/Update
   , delete
   , Delete'
@@ -71,6 +77,14 @@ module Data.FHMap
   , Adjust'
   , adjust'
     -- * Query
+    -- ** Path
+  , Path (..)
+  , Pave
+  , pave
+  , PaveMay
+  , paveMay
+  , lead
+  , LeadMay (..)
     -- ** Lookup
   , Lookup
   , lookup
@@ -140,10 +154,11 @@ module Data.FHMap
   , ToDescList
   , toDescList
     -- * Re-exports
-  , module Data.Type.Map
+  , module TypeMap
   , TypeMaybe (..)
   ) where
 
 import           Data.FHMap.Internal
 import           Data.Type.Map
+import           Data.Type.Map as TypeMap hiding (Pave, PaveMay)
 import           Data.Type.Maybe

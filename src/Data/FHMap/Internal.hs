@@ -151,22 +151,7 @@ size (_ :: FHMap f as) = natVal (Proxy :: Proxy (Length as))
 
 class Member (k :: s) (as :: M s) (e :: Bool) | k as -> e
 
-instance Member k 'T 'False
-
-instance ( flag ~ Compare q k
-         , Member' flag q ('B k b l r) e
-         )
-      => Member q ('B k b l r) e
-
-
-
-class Member' (flag :: Ordering) (k :: s) (as :: M s) e | flag k as -> e
-
-instance Member' 'EQ k ('B k a ls ms) 'True
-
-instance Member q l e => Member' 'LT q ('B k b l r) e
-
-instance Member q r e => Member' 'GT q ('B k b l r) e
+instance (PaveMay k as mayPath, IsJust mayPath e) => Member k as e
 
 
 
@@ -179,33 +164,65 @@ member (_ :: Proxy k) (_ :: FHMap f as) =
 
 
 
+-- | Builds a @path@ to the @key@ in the @map@.
+--   Throws a type error if the key is not in the map.
+pave :: Pave k as path => Proxy k -> FHMap f as -> Proxy path
+pave (Proxy :: Proxy k) (_ :: FHMap f as) = Proxy :: Pave k as path => Proxy path
+
+
+
+-- | Builds a @path@ to the @key@ in the @map@. @'Nothing@ if the key is not in the map.
+paveMay :: PaveMay k as mayPath => Proxy k -> FHMap f as -> Proxy mayPath
+paveMay (Proxy :: Proxy k) (_ :: FHMap f as) =
+  Proxy :: PaveMay k as mayPath => Proxy mayPath
+
+
+
 class Lookup (k :: s) (as :: M s) (a :: v) | k v as -> a where
   -- | Lookup the value at a key in the map.
   --
   --   The function will return a type error if the key isn't in the map.
-  --
-  --   NOTE: failure to find a key yields @f (TypeError ...)@ instead of
-  --         @(TypeError ...)@, leading to a tiny side case in GHCi where requesting
-  --         @'lookup' ('Proxy' :: Proxy "this") 'empty'@ errors out with 'undefined'.
-  --         The type error arises properly when @f@ is known, or the result is part of
-  --         an expression, so it cannot manifest outside GHCi.
   lookup :: Proxy k -> FHMap f as -> f a
 
-instance ( LookupMay k as mayA
-         , err ~ TypeError ( 'Text "Key "
-                       ':<>: 'ShowType k
-                       ':<>: 'Text " is not in the map"
-                           )
-         , FromTypeMaybe err mayA a
+instance ( Pave k as path
+         , LeadMay path as ('Just a)
          )
         => Lookup k as a where
-  lookup k (m :: FHMap f as) = fromTypeMaybe (undefined :: f err) $ lookupMay k m
+  lookup Proxy = lead (Proxy :: Proxy path)
 
 
 
 -- | Synonym to 'lookup', arguments are flipped.
 (!) :: Lookup k as a => FHMap f as -> Proxy k -> f a
 (!) = flip lookup
+
+
+
+-- | Retrieves a value at @path@ in the @map@. Simply assumes the @path@ is correct, so
+--   if it leads outside the tree, this fails with a type mismatch.
+lead :: LeadMay path as ('Just a) => Proxy path -> FHMap f as -> f a
+lead path as =
+  let TypeJust a = leadMay path as
+  in a
+
+
+
+class LeadMay (path :: Path) (as :: M k) (a :: Maybe v) | path as v -> a where
+  -- | Retrieves a value at @path@ in the @map@. @TypeNothing@ if @path@ does not lead anywhere.
+  leadMay :: Proxy path -> FHMap f as -> TypeMaybe f a
+
+instance LeadMay path 'T 'Nothing where
+  leadMay _ FHTip = TypeNothing
+
+instance LeadMay 'I ('B k a l r) ('Just a) where
+  leadMay _ (FHBin _ a _ _) = TypeJust a
+
+instance LeadMay path l b => LeadMay ('L path) ('B k a l r) b where
+  leadMay _ (FHBin _ _ l _) = leadMay (Proxy :: Proxy path) l
+
+instance LeadMay path r b => LeadMay ('R path) ('B k a l r) b where
+  leadMay _ (FHBin _ _ _ r) = leadMay (Proxy :: Proxy path) r
+
 
 
 
@@ -216,28 +233,23 @@ class LookupMay (k :: s) (as :: M s) (a :: Maybe v) | k v as -> a where
   --   or @'TypeNothing'@ if the key isn't in the map.
   lookupMay :: Proxy k -> FHMap f as -> TypeMaybe f a
 
-instance LookupMay k 'T 'Nothing where
-  lookupMay _ FHTip = TypeNothing
-
-instance ( flag ~ Compare q k
-         , LookupMay' flag q ('B k b l r) a
+instance ( PaveMay k as mayPath
+         , LookupMay' mayPath as a
          )
-      => LookupMay q ('B k b l r) a where
-  lookupMay = lookupMay' (Proxy :: Proxy flag)
+      => LookupMay k as a where
+  lookupMay _ = lookupMay' (Proxy :: Proxy mayPath)
 
 
 
-class LookupMay' (flag :: Ordering) (k :: s) (as :: M s) (a :: Maybe v) | flag k v as -> a where
-  lookupMay' :: Proxy flag -> Proxy k -> FHMap f as -> TypeMaybe f a
+class LookupMay' (path :: Maybe Path) (as :: M s) (a :: Maybe v) | path v as -> a where
+  lookupMay' :: Proxy path -> FHMap f as -> TypeMaybe f a
 
-instance LookupMay' 'EQ k ('B k a ls ms) ('Just a) where
-  lookupMay' _ _ (FHBin _ a _ _) = TypeJust a
+instance LookupMay' 'Nothing as 'Nothing where
+  lookupMay' _ _ = TypeNothing
 
-instance LookupMay q l a => LookupMay' 'LT q ('B k b l r) a where
-  lookupMay' _ q (FHBin _ _ l _) = lookupMay q l
+instance LeadMay path as a => LookupMay' ('Just path) as a where
+  lookupMay' _ as = leadMay (Proxy :: Proxy path) as
 
-instance LookupMay q r a => LookupMay' 'GT q ('B k b l r) a where
-  lookupMay' _ q (FHBin _ _ _ r) = lookupMay q r
 
 
 -- | Synonym to 'lookupMay', arguments are flipped.
@@ -786,6 +798,70 @@ instance TypeError ( 'Text "Expected type "
                    )
       => ApplyClobber' 'False k a b a where
   applyClobber' _ _ _ _ = undefined
+
+
+
+type Swap = SwapC 'Clobber
+
+-- | Replaces a value at a position @path@ points to.
+swap :: Swap path a as bs => Proxy path -> f a -> FHMap f as -> FHMap f bs
+swap = swapC (Proxy :: Proxy 'Clobber)
+
+type SwapId = SwapC 'IfIdentical
+
+-- | Same as 'swap', failing with a type error if the type of the argument does not match
+--   with the type of the value stored in the map.
+swapId :: SwapId path a as bs => Proxy path -> f a -> FHMap f as -> FHMap f bs
+swapId = swapC (Proxy :: Proxy 'IfIdentical)
+
+
+
+class SwapC (clobber :: Clobber) (path :: Path) (a :: v) (as :: M k) (bs :: M k)
+              | clobber path a as -> bs where
+  swapC :: Proxy clobber -> Proxy path -> f a -> FHMap f as -> FHMap f bs
+
+instance TypeError ( 'Text "Incorrect path" )
+      => SwapC c p x 'T 'T where
+  swapC _ _ _ _ = undefined
+
+instance ApplyPathClobber c x a z => SwapC c 'I x ('B k a l r) ('B k z l r) where
+  swapC c _ x (FHBin Proxy a l r) = FHBin Proxy (applyPathClobber c x a) l r
+
+instance SwapC c path x l z
+      => SwapC c ('L path) x ('B k a l r) z where
+  swapC c _ x (FHBin Proxy _ l _) = swapC c (Proxy :: Proxy path) x l
+
+instance SwapC c path x r z
+      => SwapC c ('R path) x ('B k a l r) z where
+  swapC c _ x (FHBin Proxy _ _ r) = swapC c (Proxy :: Proxy path) x r
+
+
+
+class ApplyPathClobber (c :: Clobber) (a :: v) (b :: v) (z :: v) | c a b -> z where
+  applyPathClobber :: Proxy c -> f a -> f b -> f z
+
+instance ApplyPathClobber 'Clobber a b b where
+  applyPathClobber _ _ b = b
+
+instance ( flag ~ (a == b)
+         , ApplyPathClobber' flag a b z
+         )
+        => ApplyPathClobber 'IfIdentical a b z where
+  applyPathClobber _ = applyPathClobber' (Proxy :: Proxy flag)
+
+class ApplyPathClobber' (flag :: Bool) (a :: v) (b :: v) (z :: v) | flag a b -> z where
+  applyPathClobber' :: Proxy flag -> f a -> f b -> f z
+
+instance ApplyPathClobber' 'True a b b where
+  applyPathClobber' _ _ b = b
+
+instance TypeError ( 'Text "Expected type "
+               ':<>: 'ShowType a
+               ':<>: 'Text " on identical swap, but found "
+               ':<>: 'ShowType b
+                   )
+      => ApplyPathClobber' 'False a b a where
+  applyPathClobber' _ _ _ = undefined
 
 
 

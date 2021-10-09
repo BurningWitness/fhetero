@@ -178,7 +178,7 @@ paveMay (Proxy :: Proxy k) (_ :: FHMap f as) =
 
 
 
-class Lookup (k :: s) (as :: M s) (a :: v) | k v as -> a where
+class Lookup (k :: s) (as :: M s) (a :: v) | k as -> a where
   -- | Lookup the value at a key in the map.
   --
   --   The function will return a type error if the key isn't in the map.
@@ -207,11 +207,11 @@ lead path as =
 
 
 
-class LeadMay (path :: Path) (as :: M k) (a :: Maybe v) | path as v -> a where
+class LeadMay (path :: Path) (as :: M k) (a :: Maybe v) | path as -> a where
   -- | Retrieves a value at @path@ in the @map@. @TypeNothing@ if @path@ does not lead anywhere.
   leadMay :: Proxy path -> FHMap f as -> TypeMaybe f a
 
-instance LeadMay path 'T 'Nothing where
+instance LeadMay path 'T ('Nothing :: Maybe Void) where
   leadMay _ FHTip = TypeNothing
 
 instance LeadMay 'I ('B k a l r) ('Just a) where
@@ -226,7 +226,7 @@ instance LeadMay path r b => LeadMay ('R path) ('B k a l r) b where
 
 
 
-class LookupMay (k :: s) (as :: M s) (a :: Maybe v) | k v as -> a where
+class LookupMay (k :: s) (as :: M s) (a :: Maybe v) | k as -> a where
   -- | Lookup the value at a key in the map.
   --
   --   The function will return the corresponding value as @('TypeJust' value)@,
@@ -241,10 +241,10 @@ instance ( PaveMay k as mayPath
 
 
 
-class LookupMay' (path :: Maybe Path) (as :: M s) (a :: Maybe v) | path v as -> a where
+class LookupMay' (path :: Maybe Path) (as :: M s) (a :: Maybe v) | path as -> a where
   lookupMay' :: Proxy path -> FHMap f as -> TypeMaybe f a
 
-instance LookupMay' 'Nothing as 'Nothing where
+instance LookupMay' 'Nothing as ('Nothing :: Maybe Void) where
   lookupMay' _ _ = TypeNothing
 
 instance LeadMay path as a => LookupMay' ('Just path) as a where
@@ -1237,10 +1237,10 @@ splitLookup k m =
   let StrictTriple l mv r = splitLookupS k m
   in (l, mv, r)
 
-class SplitLookupS (k :: s) (m :: M s) (l :: M s) (a :: Maybe v) (r :: M s) | k m v -> l a r where
+class SplitLookupS (k :: s) (m :: M s) (l :: M s) (a :: Maybe v) (r :: M s) | k m -> l a r where
   splitLookupS :: Proxy k -> FHMap f m -> StrictTriple (FHMap f l) (TypeMaybe f a) (FHMap f r)
 
-instance SplitLookupS k 'T 'T 'Nothing 'T where
+instance SplitLookupS k 'T ('T :: M Void) ('Nothing :: Maybe Void) ('T :: M Void) where
   splitLookupS _ FHTip = StrictTriple FHTip TypeNothing FHTip
 
 instance ( flag ~ Compare q k
@@ -1249,7 +1249,7 @@ instance ( flag ~ Compare q k
         => SplitLookupS q ('B k a l r) l' a' r' where
   splitLookupS = splitLookupS' (Proxy :: Proxy flag)
 
-class SplitLookupS' o (k :: s) (m :: M s) (l :: M s) (a :: Maybe v) (r :: M s) | o k m v -> l a r where
+class SplitLookupS' o (k :: s) (m :: M s) (l :: M s) (a :: Maybe v) (r :: M s) | o k m -> l a r where
   splitLookupS' :: Proxy o -> Proxy k -> FHMap f m -> StrictTriple (FHMap f l) (TypeMaybe f a) (FHMap f r)
 
 instance ( SplitLookupS q l lt a' gt
@@ -1320,7 +1320,7 @@ instance ( flag1 ~ (ll == 'T && lr == 'T)
         => UnionC c ('B lk (la :: v) ll lr) ('B rk ra rl rr) z where
   unionC = unionC' (Proxy :: Proxy flag1) (Proxy :: Proxy flag2) (Proxy :: Proxy flag3)
 
-class UnionC' (flag1 :: Bool) (flag2 :: Bool) (flag3 :: Maybe v) (c :: Clobber) l r z | v c l r -> z where
+class UnionC' (flag1 :: Bool) (flag2 :: Bool) (flag3 :: Maybe v) (c :: Clobber) l r z | c l r -> z where
   unionC' :: Proxy flag1 -> Proxy flag2 -> Proxy flag3 -> Proxy c -> FHMap f l -> FHMap f r -> FHMap f z
 
 instance InsertC c rk ra l z => UnionC' 'False 'True o3 c l ('B rk ra 'T 'T) z where
